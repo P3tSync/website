@@ -5,13 +5,16 @@
 <section class="wrap page-head">
   <span class="eyebrow">Internal</span>
   <h1>Dashboard</h1>
-  <p class="lede">Founder-facing view of what's come in. No login on this in the prototype — NOTE TO SELF: add auth before this ever sees real customer data.</p>
+  <p class="lede">Protected operations view for recent orders, bookings, and partner leads.</p>
+  <form action="{{ url_for('admin_logout') }}" method="post" style="margin-top:16px;">
+    <button type="submit" class="btn btn-ghost btn-small">Sign out</button>
+  </form>
 </section>
 
 <section class="wrap dash-section">
   <h2>Recent orders</h2>
   <table class="dash-table">
-    <thead><tr><th>#</th><th>Created</th><th>Kitchen</th><th>Pet</th><th>Address</th><th>Total</th></tr></thead>
+    <thead><tr><th>#</th><th>Created</th><th>Kitchen</th><th>Pet</th><th>Species</th><th>Address</th><th>Total</th></tr></thead>
     <tbody>
       {% for o in orders %}
       <tr>
@@ -19,11 +22,12 @@
         <td>{{ o['created_at'] }}</td>
         <td>{{ o['kitchen_name'] }}</td>
         <td>{{ o['pet_name'] }}</td>
+        <td>{{ o['pet_species'] or 'n/a' }}</td>
         <td>{{ o['address'] }}</td>
         <td>{{ o['total_cents'] | money }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="6" class="tagline">No orders yet.</td></tr>
+      <tr><td colspan="7" class="tagline">No orders yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -32,7 +36,7 @@
 <section class="wrap dash-section">
   <h2>Recent bookings</h2>
   <table class="dash-table">
-    <thead><tr><th>#</th><th>Created</th><th>Clinic</th><th>Owner</th><th>Pet</th><th>Slot</th></tr></thead>
+    <thead><tr><th>#</th><th>Created</th><th>Clinic</th><th>Owner</th><th>Pet</th><th>Life stage</th><th>Slot</th></tr></thead>
     <tbody>
       {% for b in bookings %}
       <tr>
@@ -41,10 +45,11 @@
         <td>{{ b['vet_name'] }}</td>
         <td>{{ b['owner_name'] }}</td>
         <td>{{ b['pet_name'] }}</td>
+        <td>{{ b['pet_life_stage'] or 'n/a' }}</td>
         <td>{{ b['slot_time'] | human_slot }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="6" class="tagline">No bookings yet.</td></tr>
+      <tr><td colspan="7" class="tagline">No bookings yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>
