@@ -5,7 +5,7 @@
 <section class="hero wrap">
   <div class="hero-copy">
     <h1>Feeding time and vet time,<br>on the same clock.</h1>
-    <p class="lede">Order fresh meals from kitchens near you, like Uber Eats but for pet food — and find a vet who can actually see you this week.</p>
+    <p class="lede">Order fresh meals from kitchens near you and book vet care with your pet's diet history already attached.</p>
     <div class="hero-ctas">
       <a href="{{ url_for('order_browse') }}" class="btn btn-primary">
         <svg style="width:18px;height:18px"><use href="#icon-bowl"/></svg> Order pet food
@@ -13,6 +13,7 @@
       <a href="{{ url_for('vets_browse') }}" class="btn btn-secondary">
         <svg style="width:18px;height:18px"><use href="#icon-medic"/></svg> Find a vet
       </a>
+      <a href="{{ url_for('pets_page') }}" class="btn btn-ghost">Manage pets</a>
     </div>
   </div>
 </section>
@@ -20,14 +21,22 @@
 <section class="syncs wrap">
   <span class="eyebrow">How it syncs</span>
   <h2>Every meal and every visit, on one ring.</h2>
-  <p class="lede">Each delivery logs itself to your pet's profile automatically, so by the time you're at the vet, they're looking at exactly what's been in the bowl all week — and whatever they recommend feeds back into next week's order.</p>
+  <p class="lede">Each order and appointment connects to a pet profile, so meals, allergies, diet notes, and vet visits stay in one practical timeline.</p>
   <div class="dial-wrap">
-    <svg viewBox="0 0 440 440">
+    <svg class="clockwork-dial" viewBox="0 0 440 440" aria-label="Petsync clockwork care timeline">
       <circle cx="220" cy="220" r="140" fill="none" stroke="rgba(21,33,29,0.14)" stroke-width="1.5"/>
-      <circle cx="220" cy="220" r="140" fill="none" stroke="rgba(21,33,29,0.28)" stroke-width="1.5" stroke-dasharray="1 13" stroke-linecap="round"/>
+      <g class="clockwork-ticks">
+        {% for i in range(48) %}
+        <line class="tick" x1="220" y1="76" x2="220" y2="84" transform="rotate({{ i * 7.5 }} 220 220)"/>
+        {% endfor %}
+      </g>
       <text x="220" y="58" text-anchor="middle" class="dial-cardinal">00:00</text>
       <text x="382" y="224" text-anchor="start" class="dial-cardinal">06:00</text>
       <text x="220" y="392" text-anchor="middle" class="dial-cardinal">12:00</text>
+      <g class="ticker">
+        <line x1="220" y1="220" x2="220" y2="106" stroke="#173C3C" stroke-width="3.2" stroke-linecap="round"/>
+        <circle cx="220" cy="106" r="6" fill="#173C3C"/>
+      </g>
       <circle cx="220" cy="220" r="6" fill="#15211D"/>
       <circle cx="355.2" cy="256.2" r="8" fill="#E8A33D"/>
       <line x1="355.2" y1="256.2" x2="392" y2="270" stroke="rgba(21,33,29,0.3)" stroke-width="1.3"/>
