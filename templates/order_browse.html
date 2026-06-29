@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Order pet food — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap page-head">
+  <span class="eyebrow">Order</span>
+  <h1>Kitchens near you</h1>
+  <p class="lede">Small local kitchens cooking vet-approved meals — order one-off or set up a standing delivery.</p>
+</section>
+
+<section class="wrap kitchen-grid">
+  {% for k in kitchens %}
+  <a href="{{ url_for('kitchen_menu', kitchen_id=k['id']) }}" class="kitchen-tile">
+    <div class="kitchen-tile-banner" style="background:{{ k['accent'] }};"></div>
+    <div class="kitchen-tile-body">
+      <h3>{{ k['name'] }}</h3>
+      <p class="tagline">{{ k['tagline'] }}</p>
+      <div class="kitchen-tile-meta">
+        <span>★ {{ k['rating'] }}</span>
+        <span>{{ k['eta_min'] }} min</span>
+        <span>{{ k['distance_label'] }}</span>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</section>
+
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order['id'] }} — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap page-head">
+  <span class="eyebrow">Order #{{ order['id'] }}</span>
+  <h1 id="status-heading">{{ status }}</h1>
+  <p class="lede">From {{ order['kitchen_name'] }} · delivering to {{ order['pet_name'] }} at {{ order['address'] }}</p>
+</section>
+
+<section class="wrap">
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill" style="width:{{ pct }}%;"></div>
+  </div>
+  <div class="progress-stages">
+    {% for stage in stages %}
+    <span class="stage {% if loop.index0 <= stage_idx %}done{% endif %}" data-stage-index="{{ loop.index0 }}">{{ stage }}</span>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="wrap order-summary-box">
+  <h3>Order summary</h3>
+  {% for item in items %}
+  <div class="summary-row"><span>{{ item['qty'] }}× {{ item['name'] }}</span><span>{{ item['line_total'] | money }}</span></div>
+  {% endfor %}
+  <div class="summary-row"><span>Delivery fee</span><span>{{ order['delivery_fee_cents'] | money }}</span></div>
+  <div class="summary-row total"><span>Total</span><span>{{ order['total_cents'] | money }}</span></div>
+  {% if order['notes'] %}<p class="tagline" style="margin-top:14px;">Note: {{ order['notes'] }}</p>{% endif %}
+</section>
+
+<section class="wrap" style="padding-top:0;">
+  <a href="{{ url_for('order_browse') }}" class="btn btn-ghost">Order something else</a>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const orderId = {{ order['id'] }};
+  const fillEl = document.getElementById('progress-fill');
+  const headingEl = document.getElementById('status-heading');
+  const stageEls = document.querySelectorAll('.stage');
+
+  async function pollStatus() {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/status`);
+      if (!res.ok) return;
+      const data = await res.json();
+      fillEl.style.width = data.pct + '%';
+      headingEl.textContent = data.status;
+      stageEls.forEach(el => {
+        const idx = parseInt(el.dataset.stageIndex, 10);
+        el.classList.toggle('done', idx <= data.stage_idx);
+      });
+      if (data.stage_idx < 3) {
+        setTimeout(pollStatus, 5000);
+      }
+    } catch (e) {
+    }
+  }
+  setTimeout(pollStatus, 5000);
+</script>
+{% endblock %}

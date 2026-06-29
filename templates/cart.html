@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Your cart — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap page-head">
+  <span class="eyebrow">Cart</span>
+  <h1>{% if cart %}Order from {{ cart['kitchen_name'] }}{% else %}Your cart is empty{% endif %}</h1>
+</section>
+
+{% if not cart %}
+<section class="wrap empty-state">
+  <p class="lede">Nothing here yet — go pick a kitchen.</p>
+  <a href="{{ url_for('order_browse') }}" class="btn btn-primary">Browse kitchens</a>
+</section>
+{% else %}
+
+<section class="wrap cart-grid">
+  <div class="cart-lines">
+    {% for line in lines %}
+    <div class="cart-line">
+      <div class="cart-line-info">
+        <h3>{{ line['name'] }}</h3>
+        <span class="price">{{ line['price_cents'] | money }} each</span>
+      </div>
+      <form action="{{ url_for('cart_update') }}" method="post" class="qty-form">
+        <input type="hidden" name="item_id" value="{{ line['id'] }}">
+        <button type="submit" name="qty" value="{{ line['qty'] - 1 }}" class="qty-btn">−</button>
+        <span class="qty-num">{{ line['qty'] }}</span>
+        <button type="submit" name="qty" value="{{ line['qty'] + 1 }}" class="qty-btn">+</button>
+      </form>
+      <span class="line-total">{{ line['line_total'] | money }}</span>
+    </div>
+    {% endfor %}
+
+    <form action="{{ url_for('cart_clear') }}" method="post">
+      <button type="submit" class="link-btn">Clear cart</button>
+    </form>
+  </div>
+
+  <div class="cart-summary">
+    <div class="summary-row"><span>Subtotal</span><span>{{ subtotal | money }}</span></div>
+    <div class="summary-row"><span>Delivery fee</span><span>{{ delivery_fee | money }}</span></div>
+    <div class="summary-row total"><span>Total</span><span>{{ total | money }}</span></div>
+
+    <form action="{{ url_for('cart_view') }}" method="post" class="checkout-form">
+      <div class="field-row">
+        <label for="pet_name">Pet's name</label>
+        <input id="pet_name" name="pet_name" type="text" required>
+      </div>
+      <div class="field-row">
+        <label for="address">Delivery address</label>
+        <input id="address" name="address" type="text" required>
+      </div>
+      <div class="field-row">
+        <label for="notes">Notes for the kitchen (optional)</label>
+        <input id="notes" name="notes" type="text" placeholder="e.g. allergic to chicken">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Place order — {{ total | money }}</button>
+    </form>
+  </div>
+</section>
+
+{% endif %}
+{% endblock %}

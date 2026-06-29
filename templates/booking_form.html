@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Book {{ vet['name'] }} — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap page-head">
+  <a href="{{ url_for('vets_browse') }}" class="back-link">← All clinics</a>
+  <span class="eyebrow">Booking</span>
+  <h1>{{ vet['name'] }}</h1>
+  <p class="lede">{{ slot['slot_time'] | human_slot }} · {{ vet['address'] }}</p>
+</section>
+
+<section class="wrap">
+  <form method="post" class="form-card">
+    <div class="field-two">
+      <div class="field-row">
+        <label for="owner_name">Your name</label>
+        <input id="owner_name" name="owner_name" type="text" required>
+      </div>
+      <div class="field-row">
+        <label for="pet_name">Pet's name</label>
+        <input id="pet_name" name="pet_name" type="text" required>
+      </div>
+    </div>
+    <div class="field-row">
+      <label for="species">Species</label>
+      <select id="species" name="species">
+        <option value="dog">Dog</option>
+        <option value="cat">Cat</option>
+        <option value="exotic">Exotic</option>
+        <option value="small mammal">Small mammal</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label for="reason">Reason for visit</label>
+      <input id="reason" name="reason" type="text" placeholder="e.g. annual check-up, limping on back leg">
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%;">Confirm booking</button>
+  </form>
+</section>
+
+{% endblock %}
