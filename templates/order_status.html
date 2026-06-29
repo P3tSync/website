@@ -5,7 +5,7 @@
 <section class="wrap page-head">
   <span class="eyebrow">Order #{{ order['id'] }}</span>
   <h1 id="status-heading">{{ status }}</h1>
-  <p class="lede">From {{ order['kitchen_name'] }} · delivering to {{ order['pet_name'] }} at {{ order['address'] }}</p>
+  <p class="lede">From {{ order['kitchen_name'] }} · for {{ order['pet_name'] }}{% if pet %} ({{ pet['species'] | title_value }}){% endif %} · delivering to {{ order['address'] }}</p>
 </section>
 
 <section class="wrap">
@@ -27,10 +27,14 @@
   <div class="summary-row"><span>Delivery fee</span><span>{{ order['delivery_fee_cents'] | money }}</span></div>
   <div class="summary-row total"><span>Total</span><span>{{ order['total_cents'] | money }}</span></div>
   {% if order['notes'] %}<p class="tagline" style="margin-top:14px;">Note: {{ order['notes'] }}</p>{% endif %}
+  {% if pet and (pet['allergies'] or pet['diet_notes']) %}
+  <p class="profile-note" style="margin-top:14px;">Profile context: {{ pet['allergies'] or pet['diet_notes'] }}</p>
+  {% endif %}
 </section>
 
 <section class="wrap" style="padding-top:0;">
   <a href="{{ url_for('order_browse') }}" class="btn btn-ghost">Order something else</a>
+  <a href="{{ url_for('owner_history') }}" class="btn btn-ghost">View history</a>
 </section>
 
 {% endblock %}
@@ -47,7 +51,15 @@
       const res = await fetch(`/api/orders/${orderId}/status`);
       if (!res.ok) return;
       const data = await res.json();
-      fillEl.style.width = data.pct + '%';
+      if (window.anime && window.anime.animate) {
+        window.anime.animate(fillEl, {
+          width: data.pct + '%',
+          duration: 650,
+          easing: 'outCubic'
+        });
+      } else {
+        fillEl.style.width = data.pct + '%';
+      }
       headingEl.textContent = data.status;
       stageEls.forEach(el => {
         const idx = parseInt(el.dataset.stageIndex, 10);
