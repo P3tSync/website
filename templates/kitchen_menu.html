@@ -6,6 +6,9 @@
   <a href="{{ url_for('order_browse') }}" class="back-link">← All kitchens</a>
   <h1>{{ kitchen['name'] }}</h1>
   <p class="lede">{{ kitchen['tagline'] }}</p>
+  {% if selected_pet and (selected_pet['allergies'] or selected_pet['diet_notes']) %}
+  <p class="profile-note">For {{ selected_pet['name'] }}: {{ selected_pet['allergies'] or selected_pet['diet_notes'] }}</p>
+  {% endif %}
   <div class="kitchen-tile-meta">
     <span>★ {{ kitchen['rating'] }}</span>
     <span>{{ kitchen['eta_min'] }} min delivery</span>
