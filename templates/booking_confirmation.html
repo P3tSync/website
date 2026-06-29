@@ -10,8 +10,12 @@
     <div class="summary-row"><span>Owner</span><span>{{ booking['owner_name'] }}</span></div>
     <div class="summary-row"><span>Pet</span><span>{{ booking['pet_name'] }} ({{ booking['species'] or 'n/a' }})</span></div>
     {% if booking['reason'] %}<div class="summary-row"><span>Reason</span><span>{{ booking['reason'] }}</span></div>{% endif %}
+    {% if pet and (pet['allergies'] or pet['diet_notes']) %}
+    <p class="profile-note" style="margin-top:14px;">Profile context: {{ pet['allergies'] or pet['diet_notes'] }}</p>
+    {% endif %}
   </div>
   <a href="{{ url_for('vets_browse') }}" class="btn btn-ghost" style="margin-top:24px;">Back to vets</a>
+  <a href="{{ url_for('owner_history') }}" class="btn btn-ghost" style="margin-top:24px;">View history</a>
 </section>
 
 {% endblock %}
