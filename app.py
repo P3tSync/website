@@ -1,7 +1,9 @@
 import json
+import os
 import random
 import sqlite3
 from datetime import datetime, timedelta
+from functools import wraps
 from pathlib import Path
 from flask import (
     Flask, g, render_template, request, redirect, url_for, session,
@@ -9,12 +11,13 @@ from flask import (
 )
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "petsync.db"
+DB_PATH = Path(os.environ.get("PETSYNC_DB_PATH", BASE_DIR / "petsync.db"))
 
 app = Flask(__name__)
-app.secret_key = "UeSiPL26YAo1t-V38poLwdOaEZ2E6aJNj5jz1-NHwXLpNk4xHXvv8lr5Tg7LxVdH"
+app.secret_key = os.environ.get("PETSYNC_SECRET_KEY", "dev-petsync-secret-change-me")
 
 DELIVERY_FEE_CENTS = 299
+ADMIN_PASSWORD = os.environ.get("PETSYNC_ADMIN_PASSWORD", "petsync-admin")
 
 def get_db():
     if "db" not in g:
@@ -70,9 +73,20 @@ CREATE TABLE IF NOT EXISTS vet_slots (
     is_booked INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS pets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    name TEXT NOT NULL,
+    species TEXT NOT NULL,
+    life_stage TEXT,
+    allergies TEXT,
+    diet_notes TEXT
+);
+
 CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at TEXT NOT NULL,
+    pet_id INTEGER REFERENCES pets(id),
     kitchen_id INTEGER,
     kitchen_name TEXT,
     items_json TEXT,
@@ -87,6 +101,7 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TABLE IF NOT EXISTS bookings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created_at TEXT NOT NULL,
+    pet_id INTEGER REFERENCES pets(id),
     vet_id INTEGER,
     vet_name TEXT,
     slot_time TEXT,
@@ -110,6 +125,16 @@ CREATE TABLE IF NOT EXISTS partner_leads (
 def init_db():
     db = sqlite3.connect(DB_PATH)
     db.executescript(SCHEMA)
+    existing_order_cols = {
+        row[1] for row in db.execute("PRAGMA table_info(orders)").fetchall()
+    }
+    if "pet_id" not in existing_order_cols:
+        db.execute("ALTER TABLE orders ADD COLUMN pet_id INTEGER REFERENCES pets(id)")
+    existing_booking_cols = {
+        row[1] for row in db.execute("PRAGMA table_info(bookings)").fetchall()
+    }
+    if "pet_id" not in existing_booking_cols:
+        db.execute("ALTER TABLE bookings ADD COLUMN pet_id INTEGER REFERENCES pets(id)")
     db.commit()
     db.close()
 
@@ -216,6 +241,12 @@ def seed_db():
                     "INSERT INTO vet_slots (vet_id, slot_time, is_booked) VALUES (?,?,?)",
                     (vet_id, slot_time.isoformat(timespec="minutes"), is_booked))
 
+    db.execute(
+        "INSERT INTO pets (created_at, name, species, life_stage, allergies, diet_notes) "
+        "VALUES (?,?,?,?,?,?)",
+        (datetime.now().isoformat(timespec="seconds"), "Miso", "cat", "adult",
+         "Chicken sensitivity", "Prefers limited-ingredient fish recipes."))
+
     db.commit()
     db.close()
 
@@ -236,21 +267,194 @@ def human_slot(iso_str):
     time_label = dt.strftime("%I:%M %p").lstrip("0")
     return f"{day_label}, {time_label}"
 
+@app.template_filter("title_value")
+def title_value(value):
+    return (value or "").replace("_", " ").title()
+
+def ensure_demo_pet():
+    db = sqlite3.connect(DB_PATH)
+    db.row_factory = sqlite3.Row
+    existing = db.execute("SELECT COUNT(*) AS c FROM pets").fetchone()["c"]
+    if not existing:
+        db.execute(
+            "INSERT INTO pets (created_at, name, species, life_stage, allergies, diet_notes) "
+            "VALUES (?,?,?,?,?,?)",
+            (datetime.now().isoformat(timespec="seconds"), "Miso", "cat", "adult",
+             "Chicken sensitivity", "Prefers limited-ingredient fish recipes."))
+        db.commit()
+    db.close()
+
+def get_pets():
+    return get_db().execute("SELECT * FROM pets ORDER BY id DESC").fetchall()
+
+def get_selected_pet():
+    db = get_db()
+    pet_id = session.get("selected_pet_id")
+    pet = None
+    if pet_id:
+        pet = db.execute("SELECT * FROM pets WHERE id=?", (pet_id,)).fetchone()
+    if pet is None:
+        pet = db.execute("SELECT * FROM pets ORDER BY id DESC LIMIT 1").fetchone()
+        if pet:
+            session["selected_pet_id"] = pet["id"]
+    return pet
+
+def pet_form_data():
+    return dict(
+        name=request.form.get("name", "").strip(),
+        species=request.form.get("species", "dog").strip(),
+        life_stage=request.form.get("life_stage", "adult").strip(),
+        allergies=request.form.get("allergies", "").strip(),
+        diet_notes=request.form.get("diet_notes", "").strip(),
+    )
+
+def validate_pet(data):
+    errors = []
+    if not data["name"]:
+        errors.append("Pet name is required.")
+    if data["species"] not in {"dog", "cat", "exotic", "small mammal"}:
+        errors.append("Choose a supported species.")
+    if data["life_stage"] not in {"puppy", "kitten", "adult", "senior"}:
+        errors.append("Choose a life stage.")
+    return errors
+
+def login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("admin_authenticated"):
+            flash("Sign in to view the operations dashboard.", "warning")
+            return redirect(url_for("admin_login", next=request.path))
+        return view(*args, **kwargs)
+    return wrapped
+
 @app.context_processor
 def inject_cart_count():
     cart = session.get("cart")
     count = sum(cart["items"].values()) if cart else 0
-    return dict(cart_count=count)
+    selected_pet = None
+    pets = []
+    try:
+        selected_pet = get_selected_pet()
+        pets = get_pets()
+    except sqlite3.Error:
+        pass
+    return dict(cart_count=count, selected_pet=selected_pet, pets=pets)
 
 @app.route("/")
 def home():
     return render_template("home.html")
 
+@app.route("/pets", methods=["GET", "POST"])
+def pets_page():
+    db = get_db()
+    form = dict(name="", species="dog", life_stage="adult", allergies="", diet_notes="")
+    if request.method == "POST":
+        data = pet_form_data()
+        errors = validate_pet(data)
+        if errors:
+            for error in errors:
+                flash(error, "warning")
+            form = data
+        else:
+            cur = db.execute(
+                "INSERT INTO pets (created_at, name, species, life_stage, allergies, diet_notes) "
+                "VALUES (?,?,?,?,?,?)",
+                (datetime.now().isoformat(timespec="seconds"), data["name"],
+                 data["species"], data["life_stage"], data["allergies"],
+                 data["diet_notes"]))
+            db.commit()
+            session["selected_pet_id"] = cur.lastrowid
+            flash(f"{data['name']} is now the active pet profile.", "success")
+            return redirect(url_for("pets_page"))
+
+    pets = get_pets()
+    active_pet = get_selected_pet()
+    pet_summaries = []
+    for pet in pets:
+        orders = db.execute(
+            "SELECT * FROM orders WHERE pet_id=? ORDER BY id DESC LIMIT 3",
+            (pet["id"],)).fetchall()
+        bookings = db.execute(
+            "SELECT * FROM bookings WHERE pet_id=? ORDER BY slot_time DESC LIMIT 3",
+            (pet["id"],)).fetchall()
+        pet_summaries.append(dict(pet=pet, orders=orders, bookings=bookings))
+    return render_template("pets.html", pet_summaries=pet_summaries,
+                           active_pet=active_pet, form=form)
+
+@app.route("/pets/select", methods=["POST"])
+def select_pet():
+    pet_id = int(request.form.get("pet_id", 0))
+    pet = get_db().execute("SELECT * FROM pets WHERE id=?", (pet_id,)).fetchone()
+    if pet:
+        session["selected_pet_id"] = pet["id"]
+        flash(f"{pet['name']} is selected.", "success")
+    else:
+        flash("That pet profile could not be found.", "warning")
+    return redirect(request.referrer or url_for("pets_page"))
+
+@app.route("/history")
+def owner_history():
+    db = get_db()
+    active_pet = get_selected_pet()
+    if active_pet:
+        orders = db.execute(
+            "SELECT * FROM orders WHERE pet_id=? ORDER BY id DESC LIMIT 25",
+            (active_pet["id"],)).fetchall()
+        bookings = db.execute(
+            "SELECT * FROM bookings WHERE pet_id=? ORDER BY slot_time DESC LIMIT 25",
+            (active_pet["id"],)).fetchall()
+    else:
+        orders = []
+        bookings = []
+    return render_template("history.html", active_pet=active_pet,
+                           orders=orders, bookings=bookings)
+
 @app.route("/order")
 def order_browse():
     db = get_db()
-    kitchens = db.execute("SELECT * FROM kitchens ORDER BY name").fetchall()
-    return render_template("order_browse.html", kitchens=kitchens)
+    active_pet = get_selected_pet()
+    filters = dict(
+        species=request.args.get("species", active_pet["species"] if active_pet else "any"),
+        life_stage=request.args.get("life_stage", active_pet["life_stage"] if active_pet else "any"),
+        dietary=request.args.get("dietary", "any"),
+        max_price=request.args.get("max_price", "any"),
+        eta=request.args.get("eta", "any"),
+    )
+    kitchens = db.execute("""
+        SELECT k.*, MIN(m.price_cents) AS min_price_cents,
+               GROUP_CONCAT(m.tag || ' ' || m.name || ' ' || COALESCE(m.description, '')) AS menu_text
+        FROM kitchens k
+        JOIN menu_items m ON m.kitchen_id = k.id
+        GROUP BY k.id
+        ORDER BY k.name
+    """).fetchall()
+
+    filtered = []
+    for kitchen in kitchens:
+        menu_text = (kitchen["menu_text"] or "").lower()
+        include = True
+        if filters["species"] == "cat":
+            include = "cat" in menu_text or "whisker" in kitchen["name"].lower() or "family" in menu_text
+        elif filters["species"] == "dog":
+            include = "dog" in menu_text or "puppy" in menu_text or "family" in menu_text
+        if include and filters["life_stage"] in {"puppy", "kitten", "senior"}:
+            include = filters["life_stage"] in menu_text or (
+                filters["life_stage"] == "kitten" and "cat" in menu_text)
+        if include and filters["dietary"] != "any":
+            terms = {
+                "sensitive": ["sensitive", "limited ingredient", "gentle"],
+                "high_protein": ["high-protein", "protein"],
+                "treats": ["treat", "treats"],
+            }[filters["dietary"]]
+            include = any(term in menu_text for term in terms)
+        if include and filters["max_price"] != "any":
+            include = kitchen["min_price_cents"] <= int(filters["max_price"])
+        if include and filters["eta"] != "any":
+            include = kitchen["eta_min"] <= int(filters["eta"])
+        if include:
+            filtered.append(kitchen)
+    return render_template("order_browse.html", kitchens=filtered, filters=filters,
+                           active_pet=active_pet)
 
 @app.route("/order/<int:kitchen_id>")
 def kitchen_menu(kitchen_id):
@@ -268,6 +472,13 @@ def cart_add():
     kitchen_id = int(request.form["kitchen_id"])
     item_id = str(int(request.form["item_id"]))
     qty = max(1, int(request.form.get("qty", 1)))
+    db = get_db()
+    item = db.execute(
+        "SELECT id FROM menu_items WHERE id=? AND kitchen_id=?",
+        (item_id, kitchen_id)).fetchone()
+    if item is None:
+        flash("That menu item is no longer available.", "warning")
+        return redirect(url_for("order_browse"))
 
     cart = session.get("cart")
     if cart and cart["kitchen_id"] != kitchen_id:
@@ -276,8 +487,10 @@ def cart_add():
         return redirect(url_for("kitchen_menu", kitchen_id=kitchen_id))
 
     if not cart:
-        db = get_db()
         kitchen = db.execute("SELECT name FROM kitchens WHERE id=?", (kitchen_id,)).fetchone()
+        if kitchen is None:
+            flash("That kitchen is no longer available.", "warning")
+            return redirect(url_for("order_browse"))
         cart = {"kitchen_id": kitchen_id, "kitchen_name": kitchen["name"], "items": {}}
 
     cart["items"][item_id] = cart["items"].get(item_id, 0) + qty
@@ -302,18 +515,36 @@ def _cart_lines(db, cart):
 def cart_view():
     db = get_db()
     cart = session.get("cart")
+    active_pet = get_selected_pet()
+    form = dict(pet_id=str(active_pet["id"]) if active_pet else "",
+                pet_name=active_pet["name"] if active_pet else "",
+                address="", notes="")
 
     if request.method == "POST":
         if not cart or not cart["items"]:
             return redirect(url_for("order_browse"))
 
-        pet_name = request.form.get("pet_name", "").strip()
+        pet_id_raw = request.form.get("pet_id", "").strip()
+        pet_id = int(pet_id_raw) if pet_id_raw.isdigit() else None
+        pet = db.execute("SELECT * FROM pets WHERE id=?", (pet_id,)).fetchone() if pet_id else None
+        pet_name = pet["name"] if pet else request.form.get("pet_name", "").strip()
         address = request.form.get("address", "").strip()
         notes = request.form.get("notes", "").strip()
+        form = dict(pet_id=pet_id_raw, pet_name=pet_name, address=address, notes=notes)
 
-        if not pet_name or not address:
-            flash("Pet name and delivery address are required.", "warning")
-            return redirect(url_for("cart_view"))
+        errors = []
+        if not pet:
+            errors.append("Choose a pet profile for this order.")
+        if len(address) < 8:
+            errors.append("Enter a complete delivery address.")
+        if errors:
+            for error in errors:
+                flash(error, "warning")
+            lines, subtotal = _cart_lines(db, cart)
+            total = subtotal + DELIVERY_FEE_CENTS if lines else 0
+            return render_template("cart.html", cart=cart, lines=lines, subtotal=subtotal,
+                                   delivery_fee=DELIVERY_FEE_CENTS, total=total, form=form,
+                                   active_pet=active_pet)
 
         lines, subtotal = _cart_lines(db, cart)
         if not lines:
@@ -321,10 +552,10 @@ def cart_view():
 
         total = subtotal + DELIVERY_FEE_CENTS
         cur = db.execute(
-            "INSERT INTO orders (created_at, kitchen_id, kitchen_name, items_json, "
+            "INSERT INTO orders (created_at, pet_id, kitchen_id, kitchen_name, items_json, "
             "subtotal_cents, delivery_fee_cents, total_cents, pet_name, address, notes) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (datetime.now().isoformat(timespec="seconds"), cart["kitchen_id"],
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (datetime.now().isoformat(timespec="seconds"), pet["id"], cart["kitchen_id"],
              cart["kitchen_name"], json.dumps(lines), subtotal, DELIVERY_FEE_CENTS,
              total, pet_name, address, notes))
         db.commit()
@@ -334,12 +565,14 @@ def cart_view():
 
     if not cart or not cart["items"]:
         return render_template("cart.html", cart=None, lines=[], subtotal=0,
-                                delivery_fee=DELIVERY_FEE_CENTS, total=0)
+                                delivery_fee=DELIVERY_FEE_CENTS, total=0, form=form,
+                                active_pet=active_pet)
 
     lines, subtotal = _cart_lines(db, cart)
     total = subtotal + DELIVERY_FEE_CENTS
     return render_template("cart.html", cart=cart, lines=lines, subtotal=subtotal,
-                            delivery_fee=DELIVERY_FEE_CENTS, total=total)
+                            delivery_fee=DELIVERY_FEE_CENTS, total=total, form=form,
+                            active_pet=active_pet)
 
 @app.route("/cart/update", methods=["POST"])
 def cart_update():
@@ -384,9 +617,11 @@ def order_status_page(order_id):
     if order is None:
         abort(404)
     items = json.loads(order["items_json"])
+    pet = db.execute("SELECT * FROM pets WHERE id=?", (order["pet_id"],)).fetchone() if order["pet_id"] else None
     idx, status, pct = _order_progress(order["created_at"])
     return render_template("order_status.html", order=order, items=items,
-                            stages=ORDER_STAGES, stage_idx=idx, status=status, pct=pct)
+                            stages=ORDER_STAGES, stage_idx=idx, status=status, pct=pct,
+                            pet=pet)
 
 @app.route("/api/orders/<int:order_id>/status")
 def api_order_status(order_id):
@@ -400,7 +635,8 @@ def api_order_status(order_id):
 @app.route("/vets")
 def vets_browse():
     db = get_db()
-    species = request.args.get("species", "any")
+    active_pet = get_selected_pet()
+    species = request.args.get("species", active_pet["species"] if active_pet else "any")
     urgency = request.args.get("urgency", "any")
 
     vets = db.execute("SELECT * FROM vets ORDER BY distance_label").fetchall()
@@ -416,16 +652,20 @@ def vets_browse():
         slots = db.execute(
             "SELECT * FROM vet_slots WHERE vet_id=? AND is_booked=0 AND slot_time>? "
             "ORDER BY slot_time LIMIT 2", (v["id"], now_iso)).fetchall()
-        vet_cards.append(dict(vet=v, slots=slots))
+        slot_count = db.execute(
+            "SELECT COUNT(*) AS c FROM vet_slots WHERE vet_id=? AND is_booked=0 AND slot_time>?",
+            (v["id"], now_iso)).fetchone()["c"]
+        vet_cards.append(dict(vet=v, slots=slots, slot_count=slot_count))
         markers.append(dict(id=v["id"], name=v["name"], lat=v["lat"], lng=v["lng"],
                              distance=v["distance_label"]))
 
     return render_template("vets.html", vet_cards=vet_cards, markers_json=json.dumps(markers),
-                            species=species, urgency=urgency)
+                            species=species, urgency=urgency, active_pet=active_pet)
 
 @app.route("/vets/<int:vet_id>/book/<int:slot_id>", methods=["GET", "POST"])
 def book_slot(vet_id, slot_id):
     db = get_db()
+    active_pet = get_selected_pet()
     vet = db.execute("SELECT * FROM vets WHERE id=?", (vet_id,)).fetchone()
     slot = db.execute("SELECT * FROM vet_slots WHERE id=? AND vet_id=?",
                        (slot_id, vet_id)).fetchone()
@@ -434,27 +674,47 @@ def book_slot(vet_id, slot_id):
     if slot["is_booked"]:
         flash("That slot was just booked by someone else — pick another.", "warning")
         return redirect(url_for("vets_browse"))
+    form = dict(
+        pet_id=str(active_pet["id"]) if active_pet else "",
+        owner_name="",
+        pet_name=active_pet["name"] if active_pet else "",
+        species=active_pet["species"] if active_pet else "dog",
+        reason="",
+    )
 
     if request.method == "POST":
+        pet_id_raw = request.form.get("pet_id", "").strip()
+        pet_id = int(pet_id_raw) if pet_id_raw.isdigit() else None
+        pet = db.execute("SELECT * FROM pets WHERE id=?", (pet_id,)).fetchone() if pet_id else None
         owner_name = request.form.get("owner_name", "").strip()
-        pet_name = request.form.get("pet_name", "").strip()
-        species = request.form.get("species", "").strip()
+        pet_name = pet["name"] if pet else request.form.get("pet_name", "").strip()
+        species = pet["species"] if pet else request.form.get("species", "").strip()
         reason = request.form.get("reason", "").strip()
+        form = dict(pet_id=pet_id_raw, owner_name=owner_name, pet_name=pet_name,
+                    species=species, reason=reason)
 
-        if not owner_name or not pet_name:
-            flash("Your name and your pet's name are required.", "warning")
-            return render_template("booking_form.html", vet=vet, slot=slot)
+        errors = []
+        if not pet:
+            errors.append("Choose a pet profile for this appointment.")
+        if len(owner_name) < 2:
+            errors.append("Enter your name.")
+        if errors:
+            for error in errors:
+                flash(error, "warning")
+            return render_template("booking_form.html", vet=vet, slot=slot,
+                                   form=form, active_pet=active_pet)
 
         db.execute("UPDATE vet_slots SET is_booked=1 WHERE id=?", (slot_id,))
         cur = db.execute(
-            "INSERT INTO bookings (created_at, vet_id, vet_name, slot_time, owner_name, "
-            "pet_name, species, reason) VALUES (?,?,?,?,?,?,?,?)",
-            (datetime.now().isoformat(timespec="seconds"), vet_id, vet["name"],
+            "INSERT INTO bookings (created_at, pet_id, vet_id, vet_name, slot_time, owner_name, "
+            "pet_name, species, reason) VALUES (?,?,?,?,?,?,?,?,?)",
+            (datetime.now().isoformat(timespec="seconds"), pet["id"], vet_id, vet["name"],
              slot["slot_time"], owner_name, pet_name, species, reason))
         db.commit()
         return redirect(url_for("booking_confirmation", booking_id=cur.lastrowid))
 
-    return render_template("booking_form.html", vet=vet, slot=slot)
+    return render_template("booking_form.html", vet=vet, slot=slot,
+                           form=form, active_pet=active_pet)
 
 @app.route("/bookings/<int:booking_id>")
 def booking_confirmation(booking_id):
@@ -462,7 +722,8 @@ def booking_confirmation(booking_id):
     booking = db.execute("SELECT * FROM bookings WHERE id=?", (booking_id,)).fetchone()
     if booking is None:
         abort(404)
-    return render_template("booking_confirmation.html", booking=booking)
+    pet = db.execute("SELECT * FROM pets WHERE id=?", (booking["pet_id"],)).fetchone() if booking["pet_id"] else None
+    return render_template("booking_confirmation.html", booking=booking, pet=pet)
 
 @app.route("/partners", methods=["GET", "POST"])
 def partners():
@@ -487,15 +748,52 @@ def partners():
     return render_template("partners.html", success=success)
 
 @app.route("/dashboard")
+@login_required
 def dashboard():
     db = get_db()
-    orders = db.execute("SELECT * FROM orders ORDER BY id DESC LIMIT 25").fetchall()
-    bookings = db.execute("SELECT * FROM bookings ORDER BY id DESC LIMIT 25").fetchall()
+    orders = db.execute("""
+        SELECT o.*, p.species AS pet_species FROM orders o
+        LEFT JOIN pets p ON p.id = o.pet_id
+        ORDER BY o.id DESC LIMIT 25
+    """).fetchall()
+    bookings = db.execute("""
+        SELECT b.*, p.life_stage AS pet_life_stage FROM bookings b
+        LEFT JOIN pets p ON p.id = b.pet_id
+        ORDER BY b.id DESC LIMIT 25
+    """).fetchall()
     leads = db.execute("SELECT * FROM partner_leads ORDER BY id DESC LIMIT 25").fetchall()
     return render_template("dashboard.html", orders=orders, bookings=bookings, leads=leads)
 
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if password == ADMIN_PASSWORD:
+            session["admin_authenticated"] = True
+            flash("Dashboard unlocked.", "success")
+            return redirect(request.args.get("next") or url_for("dashboard"))
+        flash("That password did not work.", "warning")
+    return render_template("login.html")
+
+@app.route("/admin/logout", methods=["POST"])
+def admin_logout():
+    session.pop("admin_authenticated", None)
+    flash("Signed out of the dashboard.", "success")
+    return redirect(url_for("home"))
+
+@app.errorhandler(404)
+def not_found(_error):
+    return render_template("error.html", code=404, title="Page not found",
+                           message="That page or record is not available anymore."), 404
+
+@app.errorhandler(500)
+def server_error(_error):
+    return render_template("error.html", code=500, title="Something went wrong",
+                           message="Petsync hit a problem. Try again in a moment."), 500
+
 init_db()
 seed_db()
+ensure_demo_pet()
 
 if __name__ == "__main__":
     app.run(debug=True)
