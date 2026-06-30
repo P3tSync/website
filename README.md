@@ -29,7 +29,7 @@ python -m venv .venv
 1. Activate the Environment:
 
 - Windows Powershell:
-  ``Powershell
+  ```Powershell
   .\.venv\Scripts\Activate.ps1
   ```
 - Windows CMD:
