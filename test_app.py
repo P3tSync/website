@@ -69,6 +69,11 @@ class PetsyncTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertIn(b"Sign in", resp.data)
 
+    def test_unknown_route_returns_custom_404(self):
+        resp = self.client.get("/this-page-does-not-exist")
+        self.assertEqual(resp.status_code, 404)
+        self.assertIn(b"Page not found", resp.data)
+
 
 if __name__ == "__main__":
     unittest.main()
