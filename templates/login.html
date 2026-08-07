@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Admin sign in — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap page-head">
+  <span class="eyebrow">Internal</span>
+  <h1>Operations sign in</h1>
+  <p class="lede">Enter the admin password to view the operations dashboard.</p>
+</section>
+
+<section class="wrap">
+  <form method="post" class="form-card">
+    <div class="field-row">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required autofocus>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%;">Sign in</button>
+  </form>
+</section>
+
+{% endblock %}

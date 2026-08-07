@@ -43,6 +43,32 @@ class PetsyncTestCase(unittest.TestCase):
         self.assertIn('root.setAttribute("data-theme"', body)
         self.assertNotIn('classList.toggle("dark"', body)
 
+    def test_admin_login_page_renders(self):
+        resp = self.client.get("/admin/login")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"Sign in", resp.data)
+
+    def test_admin_login_wrong_password_rejected(self):
+        resp = self.client.post(
+            "/admin/login", data={"password": "nope"}, follow_redirects=True
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"did not work", resp.data)
+
+    def test_admin_login_correct_password_unlocks_dashboard(self):
+        resp = self.client.post(
+            "/admin/login",
+            data={"password": "petsync-admin"},
+            follow_redirects=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"Dashboard", resp.data)
+
+    def test_dashboard_requires_login(self):
+        resp = self.client.get("/dashboard", follow_redirects=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"Sign in", resp.data)
+
 
 if __name__ == "__main__":
     unittest.main()
