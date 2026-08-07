@@ -152,6 +152,21 @@ class PetsyncTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertIn(b'value="cat" selected', resp.data)
 
+    def test_cart_shows_remove_button_at_qty_one(self):
+        with petsync_app.app.app_context():
+            db = petsync_app.get_db()
+            kitchen = db.execute("SELECT id FROM kitchens LIMIT 1").fetchone()
+            item = db.execute(
+                "SELECT id FROM menu_items WHERE kitchen_id=? LIMIT 1",
+                (kitchen["id"],),
+            ).fetchone()
+        self.client.post(
+            "/cart/add",
+            data={"kitchen_id": kitchen["id"], "item_id": item["id"], "qty": 1},
+        )
+        resp = self.client.get("/cart")
+        self.assertIn(b">Remove<", resp.data)
+
 
 if __name__ == "__main__":
     unittest.main()

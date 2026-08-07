@@ -117,3 +117,5 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
 
 /* Logo */
 .brand img, .foot-brand img { display: block; }
+
+.qty-remove { width: auto; border-radius: 8px; padding: 0 10px; font-size: 0.8rem; color: var(--danger); border-color: var(--danger); }

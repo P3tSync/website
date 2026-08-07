@@ -24,7 +24,11 @@
       </div>
       <form action="{{ url_for('cart_update') }}" method="post" class="qty-form">
         <input type="hidden" name="item_id" value="{{ line['id'] }}">
+        {% if line['qty'] == 1 %}
+        <button type="submit" name="qty" value="0" class="qty-btn qty-remove">Remove</button>
+        {% else %}
         <button type="submit" name="qty" value="{{ line['qty'] - 1 }}" class="qty-btn">−</button>
+        {% endif %}
         <span class="qty-num">{{ line['qty'] }}</span>
         <button type="submit" name="qty" value="{{ line['qty'] + 1 }}" class="qty-btn">+</button>
       </form>
