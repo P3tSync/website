@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Find a vet — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap page-head">
+  <span class="eyebrow">Care</span>
+  <h1>Vets near you</h1>
+  <p class="lede">Avvailable slots, filtered by species and urgency — book in one tap.</p>
+</section>
+
+<section class="wrap filter-bar">
+  <form method="get" class="filter-form">
+    <div class="field-row">
+      <label for="species">Species</label>
+      <select id="species" name="species" onchange="this.form.submit()">
+        <option value="any" {% if species=='any' %}selected{% endif %}>Any</option>
+        <option value="dog" {% if species=='dog' %}selected{% endif %}>Dog</option>
+        <option value="cat" {% if species=='cat' %}selected{% endif %}>Cat</option>
+        <option value="exotic" {% if species=='exotic' %}selected{% endif %}>Exotic</option>
+        <option value="small mammal" {% if species=='small mammal' %}selected{% endif %}>Small mammal</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label for="urgency">Urgency</label>
+      <select id="urgency" name="urgency" onchange="this.form.submit()">
+        <option value="any" {% if urgency=='any' %}selected{% endif %}>Any</option>
+        <option value="routine" {% if urgency=='routine' %}selected{% endif %}>Routine</option>
+        <option value="urgent" {% if urgency=='urgent' %}selected{% endif %}>Urgent</option>
+        <option value="emergency" {% if urgency=='emergency' %}selected{% endif %}>Emergency</option>
+      </select>
+    </div>
+  </form>
+</section>
+
+<section class="wrap">
+  <div id="vet-map"></div>
+</section>
+
+<section class="wrap clinic-grid">
+  {% for card in vet_cards %}
+  <div class="clinic-card" id="clinic-{{ card['vet']['id'] }}">
+    <div class="clinic-card-head">
+      <h3>{{ card['vet']['name'] }}</h3>
+      <span>★ {{ card['vet']['rating'] }} · {{ card['vet']['distance_label'] }}</span>
+    </div>
+    <p class="tagline">{{ card['vet']['address'] }}</p>
+    <p class="tagline">{{ card['vet']['phone'] }}</p>
+    <div class="slot-row">
+      {% if card['slots'] %}
+        {% for slot in card['slots'] %}
+        <a href="{{ url_for('book_slot', vet_id=card['vet']['id'], slot_id=slot['id']) }}" class="slot-chip">
+          {{ slot['slot_time'] | human_slot }}
+        </a>
+        {% endfor %}
+      {% else %}
+        <span class="tagline">No upcoming slots in the next 3 days.</span>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <p class="lede">No clinics match those filters right now.</p>
+  {% endfor %}
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const markers = {{ markers_json | safe }};
+  const mapEl = document.getElementById('vet-map');
+
+  if (markers.length && window.L) {
+    const map = L.map('vet-map', { scrollWheelZoom: false }).setView(
+      [markers[0].lat, markers[0].lng], 13
+    );
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map);
+
+    const bounds = [];
+    markers.forEach(m => {
+      const marker = L.marker([m.lat, m.lng]).addTo(map);
+      marker.bindPopup(`<strong>${m.name}</strong><br>${m.distance}`);
+      marker.on('click', () => {
+        const card = document.getElementById('clinic-' + m.id);
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      bounds.push([m.lat, m.lng]);
+    });
+    if (bounds.length > 1) map.fitBounds(bounds, { padding: [30, 30] });
+  } else {
+    mapEl.innerHTML = '<p class="tagline" style="padding:20px;">No clinics to show on the map for this filter.</p>';
+  }
+</script>
+{% endblock %}

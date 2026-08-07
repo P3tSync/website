@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Booking confirmed — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap confirmation-box">
+  <svg class="confirm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#icon-check"/></svg>
+  <h1>Booking confirmed</h1>
+  <p class="lede">{{ booking['pet_name'] }}'s appointment at {{ booking['vet_name'] }} is set for {{ booking['slot_time'] | human_slot }}.</p>
+  <div class="order-summary-box" style="margin-top:24px;">
+    <div class="summary-row"><span>Owner</span><span>{{ booking['owner_name'] }}</span></div>
+    <div class="summary-row"><span>Pet</span><span>{{ booking['pet_name'] }} ({{ booking['species'] or 'n/a' }})</span></div>
+    {% if booking['reason'] %}<div class="summary-row"><span>Reason</span><span>{{ booking['reason'] }}</span></div>{% endif %}
+    {% if pet and (pet['allergies'] or pet['diet_notes']) %}
+    <p class="profile-note" style="margin-top:14px;">Profile context: {{ pet['allergies'] or pet['diet_notes'] }}</p>
+    {% endif %}
+  </div>
+  <a href="{{ url_for('vets_browse') }}" class="btn btn-ghost" style="margin-top:24px;">Back to vets</a>
+  <a href="{{ url_for('owner_history') }}" class="btn btn-ghost" style="margin-top:24px;">View history</a>
+</section>
+
+{% endblock %}

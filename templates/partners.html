@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}For partners — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap page-head">
+  <span class="eyebrow">For partners</span>
+  <h1>Running a kitchen or a clinic?</h1>
+  <p class="lede">Sync works both ways. Kitchens get steady demand without owning a delivery fleet; clinics fill same-week openings and get a feeding history before the patient sits down.</p>
+</section>
+
+<section class="wrap">
+  {% if success %}
+  <div class="confirmation-box">
+    <svg class="confirm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#icon-check"/></svg>
+    <h2>Thanks — we've got it.</h2>
+    <p class="lede">Someone from the team will follow up by email.</p>
+  </div>
+  {% else %}
+  <form method="post" class="form-card">
+    <div class="field-row">
+      <label for="kind">I'm a...</label>
+      <select id="kind" name="kind">
+        <option value="kitchen">Pet food kitchen</option>
+        <option value="vet">Veterinary clinic</option>
+      </select>
+    </div>
+    <div class="field-two">
+      <div class="field-row">
+        <label for="business_name">Business name</label>
+        <input id="business_name" name="business_name" type="text" required>
+      </div>
+      <div class="field-row">
+        <label for="contact_name">Contact name</label>
+        <input id="contact_name" name="contact_name" type="text">
+      </div>
+    </div>
+    <div class="field-row">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required>
+    </div>
+    <div class="field-row">
+      <label for="message">Anything else we should know?</label>
+      <input id="message" name="message" type="text">
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%;">Send</button>
+  </form>
+  {% endif %}
+</section>
+
+{% endblock %}

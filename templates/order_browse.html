@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Order pet food — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap page-head">
+  <span class="eyebrow">Order</span>
+  <h1>Kitchens near you</h1>
+  <p class="lede">Small local kitchens cooking pet meals. Filters start with {% if active_pet %}{{ active_pet['name'] }}'s profile{% else %}your pet profile{% endif %} and can be adjusted anytime.</p>
+</section>
+
+<section class="wrap filter-bar">
+  <form method="get" class="filter-form">
+    <div class="field-row">
+      <label for="species">Species</label>
+      <select id="species" name="species" onchange="this.form.submit()">
+        <option value="any" {% if filters.species=='any' %}selected{% endif %}>Any</option>
+        <option value="dog" {% if filters.species=='dog' %}selected{% endif %}>Dog</option>
+        <option value="cat" {% if filters.species=='cat' %}selected{% endif %}>Cat</option>
+        <option value="exotic" {% if filters.species=='exotic' %}selected{% endif %}>Exotic</option>
+        <option value="small mammal" {% if filters.species=='small mammal' %}selected{% endif %}>Small mammal</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label for="life_stage">Life stage</label>
+      <select id="life_stage" name="life_stage" onchange="this.form.submit()">
+        <option value="any" {% if filters.life_stage=='any' %}selected{% endif %}>Any</option>
+        <option value="puppy" {% if filters.life_stage=='puppy' %}selected{% endif %}>Puppy</option>
+        <option value="kitten" {% if filters.life_stage=='kitten' %}selected{% endif %}>Kitten</option>
+        <option value="adult" {% if filters.life_stage=='adult' %}selected{% endif %}>Adult</option>
+        <option value="senior" {% if filters.life_stage=='senior' %}selected{% endif %}>Senior</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label for="dietary">Dietary need</label>
+      <select id="dietary" name="dietary" onchange="this.form.submit()">
+        <option value="any" {% if filters.dietary=='any' %}selected{% endif %}>Any</option>
+        <option value="sensitive" {% if filters.dietary=='sensitive' %}selected{% endif %}>Sensitive stomach</option>
+        <option value="high_protein" {% if filters.dietary=='high_protein' %}selected{% endif %}>High protein</option>
+        <option value="treats" {% if filters.dietary=='treats' %}selected{% endif %}>Treats</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label for="max_price">Max item price</label>
+      <select id="max_price" name="max_price" onchange="this.form.submit()">
+        <option value="any" {% if filters.max_price=='any' %}selected{% endif %}>Any</option>
+        <option value="600" {% if filters.max_price=='600' %}selected{% endif %}>$6.00</option>
+        <option value="700" {% if filters.max_price=='700' %}selected{% endif %}>$7.00</option>
+        <option value="800" {% if filters.max_price=='800' %}selected{% endif %}>$8.00</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label for="eta">Delivery ETA</label>
+      <select id="eta" name="eta" onchange="this.form.submit()">
+        <option value="any" {% if filters.eta=='any' %}selected{% endif %}>Any</option>
+        <option value="25" {% if filters.eta=='25' %}selected{% endif %}>25 min or less</option>
+        <option value="30" {% if filters.eta=='30' %}selected{% endif %}>30 min or less</option>
+        <option value="35" {% if filters.eta=='35' %}selected{% endif %}>35 min or less</option>
+      </select>
+    </div>
+  </form>
+</section>
+
+<section class="wrap kitchen-grid">
+  {% for k in kitchens %}
+  <a href="{{ url_for('kitchen_menu', kitchen_id=k['id']) }}" class="kitchen-tile">
+    <div class="kitchen-tile-banner" style="background:{{ k['accent'] }};"></div>
+    <div class="kitchen-tile-body">
+      <h3>{{ k['name'] }}</h3>
+      <p class="tagline">{{ k['tagline'] }}</p>
+      <div class="kitchen-tile-meta">
+        <span>★ {{ k['rating'] }}</span>
+        <span>{{ k['eta_min'] }} min</span>
+        <span>{{ k['distance_label'] }}</span>
+      </div>
+    </div>
+  </a>
+  {% else %}
+  <div class="empty-panel">
+    <h3>No kitchens match those filters</h3>
+    <p class="tagline">Try widening the species, dietary, price, or delivery filters.</p>
+  </div>
+  {% endfor %}
+</section>
+
+{% endblock %}

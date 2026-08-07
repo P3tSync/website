@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ kitchen['name'] }} — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap kitchen-header" style="border-top:6px solid {{ kitchen['accent'] }};">
+  <a href="{{ url_for('order_browse') }}" class="back-link">← All kitchens</a>
+  <h1>{{ kitchen['name'] }}</h1>
+  <p class="lede">{{ kitchen['tagline'] }}</p>
+  {% if selected_pet and (selected_pet['allergies'] or selected_pet['diet_notes']) %}
+  <p class="profile-note">For {{ selected_pet['name'] }}: {{ selected_pet['allergies'] or selected_pet['diet_notes'] }}</p>
+  {% endif %}
+  <div class="kitchen-tile-meta">
+    <span>★ {{ kitchen['rating'] }}</span>
+    <span>{{ kitchen['eta_min'] }} min delivery</span>
+    <span>{{ kitchen['distance_label'] }}</span>
+  </div>
+</section>
+
+<section class="wrap menu-list">
+  {% for item in items %}
+  <div class="menu-row">
+    <div class="menu-info">
+      <h3>{{ item['name'] }}</h3>
+      <p class="tagline">{{ item['description'] }}</p>
+      <span class="pill">{{ item['tag'] }}</span>
+    </div>
+    <div class="menu-action">
+      <span class="price">{{ item['price_cents'] | money }}</span>
+      <form action="{{ url_for('cart_add') }}" method="post">
+        <input type="hidden" name="kitchen_id" value="{{ kitchen['id'] }}">
+        <input type="hidden" name="item_id" value="{{ item['id'] }}">
+        <input type="hidden" name="qty" value="1">
+        <button type="submit" class="btn btn-primary btn-small">Add</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+{% if cart_count %}
+<div class="sticky-cart-bar">
+  <span>{{ cart_count }} item{{ 's' if cart_count != 1 else '' }} in cart</span>
+  <a href="{{ url_for('cart_view') }}" class="btn btn-primary btn-small">View cart →</a>
+</div>
+{% endif %}
+
+{% endblock %}

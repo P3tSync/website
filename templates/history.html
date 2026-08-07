@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Order & booking history — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap page-head">
+  <span class="eyebrow">History</span>
+  <h1>{{ active_pet['name'] }}'s timeline</h1>
+  <p class="lede">All recent orders and vet appointments in one place.</p>
+</section>
+
+<section class="wrap history-grid">
+  <div>
+    <h2>Recent Orders</h2>
+    {% if orders %}
+      {% for order in orders %}
+      <a href="{{ url_for('order_status_page', order_id=order['id']) }}" class="history-item order-item">
+        <div class="history-meta">
+          <span>#{{ order['id'] }}</span>
+          <span>{{ order['created_at'][:10] }}</span>
+        </div>
+        <div class="history-main">
+          <h3>{{ order['kitchen_name'] }} · {{ order['pet_name'] }}</h3>
+          <p>{{ order['items_json'] | length }} items · {{ order['total_cents'] | money }} delivered to {{ order['address'][:40] }}</p>
+        </div>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty-panel">No orders yet.</div>
+    {% endif %}
+  </div>
+
+  <div>
+    <h2>Recent Bookings</h2>
+    {% if bookings %}
+      {% for booking in bookings %}
+      <a href="{{ url_for('booking_confirmation', booking_id=booking['id']) }}" class="history-item booking-item">
+        <div class="history-meta">
+          <span>#{{ booking['id'] }}</span>
+          <span>{{ booking['created_at'][:10] }}</span>
+        </div>
+        <div class="history-main">
+          <h3>{{ booking['vet_name'] }} · {{ booking['slot_time'] | human_slot }}</h3>
+          {% if booking['reason'] %}<p>{{ booking['reason'] }}</p>{% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty-panel">No bookings yet.</div>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}
+
+<style>
+.history-grid { display: grid; gap: 32px; }
+@media (min-width: 768px) { .history-grid { grid-template-columns: 1fr 1fr; } }
+.history-item { display: block; background: var(--surface); padding: 16px; border-radius: 12px; box-shadow: var(--shadow-sm); margin-bottom: 12px; text-decoration: none; color: inherit; transition: all 0.2s; }
+.history-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.history-meta { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; }

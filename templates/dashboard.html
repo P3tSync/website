@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap page-head">
+  <span class="eyebrow">Internal</span>
+  <h1>Dashboard</h1>
+  <p class="lede">Protected operations view for recent orders, bookings, and partner leads.</p>
+  <form action="{{ url_for('admin_logout') }}" method="post" style="margin-top:16px;">
+    <button type="submit" class="btn btn-ghost btn-small">Sign out</button>
+  </form>
+</section>
+
+<section class="wrap dash-section">
+  <h2>Recent orders</h2>
+  <table class="dash-table">
+    <thead><tr><th>#</th><th>Created</th><th>Kitchen</th><th>Pet</th><th>Species</th><th>Address</th><th>Total</th></tr></thead>
+    <tbody>
+      {% for o in orders %}
+      <tr>
+        <td><a href="{{ url_for('order_status_page', order_id=o['id']) }}">#{{ o['id'] }}</a></td>
+        <td>{{ o['created_at'] }}</td>
+        <td>{{ o['kitchen_name'] }}</td>
+        <td>{{ o['pet_name'] }}</td>
+        <td>{{ o['pet_species'] or 'n/a' }}</td>
+        <td>{{ o['address'] }}</td>
+        <td>{{ o['total_cents'] | money }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="tagline">No orders yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="wrap dash-section">
+  <h2>Recent bookings</h2>
+  <table class="dash-table">
+    <thead><tr><th>#</th><th>Created</th><th>Clinic</th><th>Owner</th><th>Pet</th><th>Life stage</th><th>Slot</th></tr></thead>
+    <tbody>
+      {% for b in bookings %}
+      <tr>
+        <td>#{{ b['id'] }}</td>
+        <td>{{ b['created_at'] }}</td>
+        <td>{{ b['vet_name'] }}</td>
+        <td>{{ b['owner_name'] }}</td>
+        <td>{{ b['pet_name'] }}</td>
+        <td>{{ b['pet_life_stage'] or 'n/a' }}</td>
+        <td>{{ b['slot_time'] | human_slot }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="tagline">No bookings yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="wrap dash-section">
+  <h2>Partner leads</h2>
+  <table class="dash-table">
+    <thead><tr><th>#</th><th>Created</th><th>Type</th><th>Business</th><th>Contact</th><th>Email</th></tr></thead>
+    <tbody>
+      {% for l in leads %}
+      <tr>
+        <td>#{{ l['id'] }}</td>
+        <td>{{ l['created_at'] }}</td>
+        <td>{{ l['kind'] }}</td>
+        <td>{{ l['business_name'] }}</td>
+        <td>{{ l['contact_name'] }}</td>
+        <td>{{ l['email'] }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="tagline">No leads yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

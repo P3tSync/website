@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}My pets — Petsync{% endblock %}
+{% block content %}
+
+<section class="wrap page-head">
+  <span class="eyebrow">Profiles</span>
+  <h1>My pets</h1>
+  <p class="lede">Pet profiles keep orders, allergies, diet notes, and vet appointments connected.</p>
+</section>
+
+<section class="wrap profile-grid">
+  <div class="profile-list">
+    {% for summary in pet_summaries %}
+    {% set pet = summary.pet %}
+    <article class="profile-card {% if active_pet and pet['id'] == active_pet['id'] %}active{% endif %}">
+      <div class="profile-card-head">
+        <div>
+          <h3>{{ pet['name'] }}</h3>
+          <p class="tagline">{{ pet['species'] | title_value }} · {{ pet['life_stage'] | title_value }}</p>
+        </div>
+        <form action="{{ url_for('select_pet') }}" method="post">
+          <input type="hidden" name="pet_id" value="{{ pet['id'] }}">
+          <button class="btn btn-small {% if active_pet and pet['id'] == active_pet['id'] %}btn-secondary{% else %}btn-ghost{% endif %}" type="submit">
+            {% if active_pet and pet['id'] == active_pet['id'] %}Active{% else %}Select{% endif %}
+          </button>
+        </form>
+      </div>
+      {% if pet['allergies'] %}<p class="profile-note">Allergies: {{ pet['allergies'] }}</p>{% endif %}
+      {% if pet['diet_notes'] %}<p class="profile-note">Diet: {{ pet['diet_notes'] }}</p>{% endif %}
+      <div class="mini-history">
+        <span>{{ summary.orders|length }} recent order{{ 's' if summary.orders|length != 1 else '' }}</span>
+        <span>{{ summary.bookings|length }} recent booking{{ 's' if summary.bookings|length != 1 else '' }}</span>
+      </div>
+    </article>
+    {% else %}
+    <div class="empty-panel">
+      <h3>No pet profiles yet</h3>
+      <p class="tagline">Add your first pet to personalize ordering and booking.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <form method="post" class="form-card profile-form">
+    <h2>Add a pet</h2>
+    <div class="field-two">
+      <div class="field-row">
+        <label for="name">Pet name</label>
+        <input id="name" name="name" type="text" value="{{ form.name }}" required>
+      </div>
+      <div class="field-row">
+        <label for="species">Species</label>
+        <select id="species" name="species">
+          <option value="dog" {% if form.species=='dog' %}selected{% endif %}>Dog</option>
+          <option value="cat" {% if form.species=='cat' %}selected{% endif %}>Cat</option>
+          <option value="exotic" {% if form.species=='exotic' %}selected{% endif %}>Exotic</option>
+          <option value="small mammal" {% if form.species=='small mammal' %}selected{% endif %}>Small mammal</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <label for="life_stage">Life stage</label>
+      <select id="life_stage" name="life_stage">
+        <option value="puppy" {% if form.life_stage=='puppy' %}selected{% endif %}>Puppy</option>
+        <option value="kitten" {% if form.life_stage=='kitten' %}selected{% endif %}>Kitten</option>
+        <option value="adult" {% if form.life_stage=='adult' %}selected{% endif %}>Adult</option>
+        <option value="senior" {% if form.life_stage=='senior' %}selected{% endif %}>Senior</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label for="allergies">Allergies or sensitivities</label>
+      <input id="allergies" name="allergies" type="text" value="{{ form.allergies }}" placeholder="e.g. chicken, wheat">
+    </div>
+    <div class="field-row">
+      <label for="diet_notes">Diet notes</label>
+      <input id="diet_notes" name="diet_notes" type="text" value="{{ form.diet_notes }}" placeholder="e.g. low-fat meals, wet food preferred">
+    </div>
+    <button type="submit" class="btn btn-primary">Save pet profile</button>
+    <a href="{{ url_for('owner_history') }}" class="btn btn-ghost">View active pet history</a>
+  </form>
+</section>
+
+{% endblock %}
