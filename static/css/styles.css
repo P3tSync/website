@@ -130,6 +130,9 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
 }
+@media (min-width: 641px) {
+  .nav-toggle-checkbox { display: none; }
+}
 .nav-toggle-label { display: none; cursor: pointer; font-size: 1.4rem; line-height: 1; }
 .nav-toggle-checkbox:focus-visible ~ .nav-toggle-label {
   outline: 2px solid var(--primary);
