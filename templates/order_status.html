@@ -51,11 +51,12 @@
       const res = await fetch(`/api/orders/${orderId}/status`);
       if (!res.ok) return;
       const data = await res.json();
-      if (window.anime && window.anime.animate) {
-        window.anime.animate(fillEl, {
+      if (window.anime) {
+        window.anime({
+          targets: fillEl,
           width: data.pct + '%',
           duration: 650,
-          easing: 'outCubic'
+          easing: 'easeOutCubic'
         });
       } else {
         fillEl.style.width = data.pct + '%';
