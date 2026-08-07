@@ -37,6 +37,12 @@ class PetsyncTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertIn(b"petsync-theme", resp.data)
 
+    def test_theme_toggle_sets_data_theme_attribute(self):
+        resp = self.client.get("/static/js/petsync-animations.js")
+        body = resp.data.decode("utf-8")
+        self.assertIn('root.setAttribute("data-theme"', body)
+        self.assertNotIn('classList.toggle("dark"', body)
+
 
 if __name__ == "__main__":
     unittest.main()

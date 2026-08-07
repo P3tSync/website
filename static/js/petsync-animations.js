@@ -6,7 +6,7 @@
 
   function setTheme(theme) {
     const isDark = theme === "dark";
-    root.classList.toggle("dark", isDark);
+    root.setAttribute("data-theme", isDark ? "dark" : "light");
     if (themeToggle) {
       themeToggle.textContent = isDark ? "☀️" : "🌙";
       themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
