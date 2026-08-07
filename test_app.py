@@ -133,6 +133,25 @@ class PetsyncTestCase(unittest.TestCase):
         self.assertIn(b'height="28"', home)
         self.assertIn(b'height="32"', home)
 
+    def test_booking_form_reselects_species_after_error(self):
+        with petsync_app.app.app_context():
+            db = petsync_app.get_db()
+            slot = db.execute(
+                "SELECT id, vet_id FROM vet_slots WHERE is_booked=0 LIMIT 1"
+            ).fetchone()
+        resp = self.client.post(
+            f"/vets/{slot['vet_id']}/book/{slot['id']}",
+            data={
+                "pet_id": "",
+                "owner_name": "",
+                "pet_name": "Miso",
+                "species": "cat",
+                "reason": "",
+            },
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b'value="cat" selected', resp.data)
+
 
 if __name__ == "__main__":
     unittest.main()

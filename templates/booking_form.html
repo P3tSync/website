@@ -24,10 +24,10 @@
     <div class="field-row">
       <label for="species">Species</label>
       <select id="species" name="species">
-        <option value="dog">Dog</option>
-        <option value="cat">Cat</option>
-        <option value="exotic">Exotic</option>
-        <option value="small mammal">Small mammal</option>
+        <option value="dog" {% if form.species=='dog' %}selected{% endif %}>Dog</option>
+        <option value="cat" {% if form.species=='cat' %}selected{% endif %}>Cat</option>
+        <option value="exotic" {% if form.species=='exotic' %}selected{% endif %}>Exotic</option>
+        <option value="small mammal" {% if form.species=='small mammal' %}selected{% endif %}>Small mammal</option>
       </select>
     </div>
     <div class="field-row">
