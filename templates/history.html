@@ -20,7 +20,7 @@
         </div>
         <div class="history-main">
           <h3>{{ order['kitchen_name'] }} · {{ order['pet_name'] }}</h3>
-          <p>{{ order['items_json'] | length }} items · {{ order['total_cents'] | money }} delivered to {{ order['address'][:40] }}</p>
+          <p>{{ order['items'] | length }} items · {{ order['total_cents'] | money }} delivered to {{ order['address'][:40] }}</p>
         </div>
       </a>
       {% endfor %}

@@ -394,9 +394,14 @@ def owner_history():
     db = get_db()
     active_pet = get_selected_pet()
     if active_pet:
-        orders = db.execute(
+        order_rows = db.execute(
             "SELECT * FROM orders WHERE pet_id=? ORDER BY id DESC LIMIT 25",
             (active_pet["id"],)).fetchall()
+        orders = []
+        for row in order_rows:
+            order = dict(row)
+            order["items"] = json.loads(order["items_json"])
+            orders.append(order)
         bookings = db.execute(
             "SELECT * FROM bookings WHERE pet_id=? ORDER BY slot_time DESC LIMIT 25",
             (active_pet["id"],)).fetchall()

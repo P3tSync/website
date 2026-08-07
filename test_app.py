@@ -74,6 +74,36 @@ class PetsyncTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 404)
         self.assertIn(b"Page not found", resp.data)
 
+    def _create_test_order(self):
+        with petsync_app.app.app_context():
+            db = petsync_app.get_db()
+            kitchen = db.execute("SELECT id FROM kitchens LIMIT 1").fetchone()
+            item = db.execute(
+                "SELECT id FROM menu_items WHERE kitchen_id=? LIMIT 1",
+                (kitchen["id"],),
+            ).fetchone()
+            pet = db.execute("SELECT id FROM pets LIMIT 1").fetchone()
+        self.client.post(
+            "/cart/add",
+            data={"kitchen_id": kitchen["id"], "item_id": item["id"], "qty": 1},
+        )
+        resp = self.client.post(
+            "/cart",
+            data={
+                "pet_id": pet["id"],
+                "pet_name": "Miso",
+                "address": "1 Test Street, Testville",
+                "notes": "",
+            },
+        )
+        return int(resp.headers["Location"].rstrip("/").split("/")[-1])
+
+    def test_history_shows_correct_item_count(self):
+        self._create_test_order()
+        resp = self.client.get("/history")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"1 items", resp.data)
+
 
 if __name__ == "__main__":
     unittest.main()
