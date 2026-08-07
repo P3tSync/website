@@ -275,6 +275,36 @@ class PetsyncTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertIn(b"Business name and email are required.", resp.data)
 
+    def test_cart_checkout_form_includes_pet_id_field(self):
+        with petsync_app.app.app_context():
+            db = petsync_app.get_db()
+            kitchen = db.execute("SELECT id FROM kitchens LIMIT 1").fetchone()
+            item = db.execute(
+                "SELECT id FROM menu_items WHERE kitchen_id=? LIMIT 1",
+                (kitchen["id"],),
+            ).fetchone()
+            pet = db.execute("SELECT id FROM pets LIMIT 1").fetchone()
+        self.client.post(
+            "/cart/add",
+            data={"kitchen_id": kitchen["id"], "item_id": item["id"], "qty": 1},
+        )
+        resp = self.client.get("/cart")
+        self.assertIn(
+            f'name="pet_id" value="{pet["id"]}"'.encode(), resp.data
+        )
+
+    def test_booking_form_includes_pet_id_field(self):
+        with petsync_app.app.app_context():
+            db = petsync_app.get_db()
+            slot = db.execute(
+                "SELECT id, vet_id FROM vet_slots WHERE is_booked=0 LIMIT 1"
+            ).fetchone()
+            pet = db.execute("SELECT id FROM pets LIMIT 1").fetchone()
+        resp = self.client.get(f"/vets/{slot['vet_id']}/book/{slot['id']}")
+        self.assertIn(
+            f'name="pet_id" value="{pet["id"]}"'.encode(), resp.data
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

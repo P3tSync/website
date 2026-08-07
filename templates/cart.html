@@ -47,6 +47,7 @@
     <div class="summary-row total"><span>Total</span><span>{{ total | money }}</span></div>
 
     <form action="{{ url_for('cart_view') }}" method="post" class="checkout-form">
+      <input type="hidden" name="pet_id" value="{{ form.pet_id }}">
       <div class="field-row">
         <label for="pet_name">Pet's name</label>
         <input id="pet_name" name="pet_name" type="text" required>
