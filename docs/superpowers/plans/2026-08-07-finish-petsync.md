@@ -1124,3 +1124,117 @@ Run: `.venv/Scripts/python.exe app.py` (background it or use a second terminal),
 If started in the background for this check, stop it.
 
 No commit for this task — it's a verification-only checkpoint confirming Tasks 1-12 together produce a working app.
+
+---
+
+### Task 15: Fix missing pet_id field in cart checkout and vet booking forms
+
+Discovered during Task 14's manual verification, not part of the original
+spec: `templates/cart.html`'s checkout form and `templates/booking_form.html`
+both omit a `pet_id` field entirely, even though `app.py`'s `cart_view()`
+and `book_slot()` POST handlers both require one from the submitted form.
+A real browser user submitting either form always gets rejected with
+"Choose a pet profile for this order" / "Choose a pet profile for this
+appointment" — the two core conversion flows of the app (ordering food,
+booking a vet visit) are completely broken for real users. This predates
+all prior tasks; nothing in Tasks 1-14 touched these form fields. The test
+suite never caught it because every test posts `pet_id` directly as form
+data rather than deriving it from what the template actually renders.
+
+Both routes already compute the correct value to prefill
+(`form = dict(pet_id=str(active_pet["id"]) if active_pet else "", ...)`
+in `cart_view()`, similarly in `book_slot()`) — the fix is just to actually
+render it as a hidden field, matching the value the route already prepared.
+
+**Files:**
+- Modify: `templates/cart.html` (checkout form)
+- Modify: `templates/booking_form.html`
+- Modify: `test_app.py` (append 2 tests)
+
+- [ ] **Step 1: Write the failing tests**
+
+Append to `PetsyncTestCase`:
+
+```python
+    def test_cart_checkout_form_includes_pet_id_field(self):
+        with petsync_app.app.app_context():
+            db = petsync_app.get_db()
+            pet = db.execute("SELECT id FROM pets LIMIT 1").fetchone()
+        resp = self.client.get("/cart")
+        self.assertIn(
+            f'name="pet_id" value="{pet["id"]}"'.encode(), resp.data
+        )
+
+    def test_booking_form_includes_pet_id_field(self):
+        with petsync_app.app.app_context():
+            db = petsync_app.get_db()
+            slot = db.execute(
+                "SELECT id, vet_id FROM vet_slots WHERE is_booked=0 LIMIT 1"
+            ).fetchone()
+            pet = db.execute("SELECT id FROM pets LIMIT 1").fetchone()
+        resp = self.client.get(f"/vets/{slot['vet_id']}/book/{slot['id']}")
+        self.assertIn(
+            f'name="pet_id" value="{pet["id"]}"'.encode(), resp.data
+        )
+```
+
+- [ ] **Step 2: Run it to confirm it fails**
+
+Run: `.venv/Scripts/python.exe test_app.py -v`
+Expected: both FAIL — neither template renders a `pet_id` field at all.
+
+- [ ] **Step 3: Add the hidden field to the cart checkout form**
+
+In `templates/cart.html`, replace:
+
+```html
+    <form action="{{ url_for('cart_view') }}" method="post" class="checkout-form">
+      <div class="field-row">
+        <label for="pet_name">Pet's name</label>
+```
+
+with:
+
+```html
+    <form action="{{ url_for('cart_view') }}" method="post" class="checkout-form">
+      <input type="hidden" name="pet_id" value="{{ form.pet_id }}">
+      <div class="field-row">
+        <label for="pet_name">Pet's name</label>
+```
+
+- [ ] **Step 4: Add the hidden field to the booking form**
+
+In `templates/booking_form.html`, replace:
+
+```html
+  <form method="post" class="form-card">
+    <div class="field-two">
+```
+
+with:
+
+```html
+  <form method="post" class="form-card">
+    <input type="hidden" name="pet_id" value="{{ form.pet_id }}">
+    <div class="field-two">
+```
+
+- [ ] **Step 5: Run it to confirm it passes, and the full suite still passes**
+
+Run: `.venv/Scripts/python.exe test_app.py -v`
+Expected: all tests OK.
+
+- [ ] **Step 6: Manual re-verification**
+
+Restart the dev server and repeat a full checkout and a full vet booking
+through the actual rendered pages (curl or browser) with NO `pet_id`
+manually injected — confirm both now succeed end-to-end (redirect to
+order status / booking confirmation) instead of showing the "Choose a pet
+profile" validation error.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add templates/cart.html templates/booking_form.html test_app.py
+git commit -m "fix: cart checkout and vet booking forms now submit pet_id, unblocking both core flows for real users"
+```
