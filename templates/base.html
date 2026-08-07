@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
 </head>
 <body>
 
@@ -50,8 +51,7 @@
 <header class="site-nav">
   <div class="wrap nav-row">
     <a href="{{ url_for('home') }}" class="brand">
-      <svg class="brand-mark" viewBox="0 0 24 24"><use href="#icon-paw"/></svg>
-      <span class="brand-word">Petsync</span>
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Petsync" height="28" style="width:auto;object-fit:contain;">
     </a>
     <nav class="nav-links">
       <a href="{{ url_for('order_browse') }}" {% if request.path.startswith('/order') %}class="active"{% endif %}>Order food</a>
@@ -94,7 +94,7 @@
 <footer>
   <div class="wrap foot-row">
     <a href="{{ url_for('home') }}" class="foot-brand">
-      <svg viewBox="0 0 24 24"><use href="#icon-paw"/></svg> Petsync
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Petsync" height="32" style="width:auto;object-fit:contain;">
     </a>
     <p class="foot-disclaimer">Seeded availability for testing. Verify kitchens, clinics, and care advice before real use.</p>
   </div>

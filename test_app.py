@@ -121,6 +121,18 @@ class PetsyncTestCase(unittest.TestCase):
         self.assertNotIn(b"window.anime.animate", resp.data)
         self.assertIn(b"window.anime(", resp.data)
 
+    def test_favicon_link_present(self):
+        resp = self.client.get("/")
+        self.assertIn(b'rel="icon"', resp.data)
+        self.assertIn(b"img/logo.png", resp.data)
+
+    def test_logo_served_and_brand_marks_sized(self):
+        resp = self.client.get("/static/img/logo.png")
+        self.assertEqual(resp.status_code, 200)
+        home = self.client.get("/").data
+        self.assertIn(b'height="28"', home)
+        self.assertIn(b'height="32"', home)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -114,3 +114,6 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
 
 /* Dark mode toggle */
 [data-theme="dark"] body { background: var(--bg); }
+
+/* Logo */
+.brand img, .foot-brand img { display: block; }
