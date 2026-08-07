@@ -529,7 +529,7 @@ def cart_view():
         pet_id_raw = request.form.get("pet_id", "").strip()
         pet_id = int(pet_id_raw) if pet_id_raw.isdigit() else None
         pet = db.execute("SELECT * FROM pets WHERE id=?", (pet_id,)).fetchone() if pet_id else None
-        pet_name = pet["name"] if pet else request.form.get("pet_name", "").strip()
+        pet_name = request.form.get("pet_name", "").strip() or (pet["name"] if pet else "")
         address = request.form.get("address", "").strip()
         notes = request.form.get("notes", "").strip()
         form = dict(pet_id=pet_id_raw, pet_name=pet_name, address=address, notes=notes)
@@ -689,8 +689,8 @@ def book_slot(vet_id, slot_id):
         pet_id = int(pet_id_raw) if pet_id_raw.isdigit() else None
         pet = db.execute("SELECT * FROM pets WHERE id=?", (pet_id,)).fetchone() if pet_id else None
         owner_name = request.form.get("owner_name", "").strip()
-        pet_name = pet["name"] if pet else request.form.get("pet_name", "").strip()
-        species = pet["species"] if pet else request.form.get("species", "").strip()
+        pet_name = request.form.get("pet_name", "").strip() or (pet["name"] if pet else "")
+        species = request.form.get("species", "").strip() or (pet["species"] if pet else "")
         reason = request.form.get("reason", "").strip()
         form = dict(pet_id=pet_id_raw, owner_name=owner_name, pet_name=pet_name,
                     species=species, reason=reason)
