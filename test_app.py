@@ -44,6 +44,7 @@ class PetsyncTestCase(unittest.TestCase):
         body = resp.data.decode("utf-8")
         self.assertIn('root.setAttribute("data-theme"', body)
         self.assertNotIn('classList.toggle("dark"', body)
+        self.assertNotIn('classList.contains("dark")', body)
 
     def test_admin_login_page_renders(self):
         resp = self.client.get("/admin/login")

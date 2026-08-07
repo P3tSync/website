@@ -23,7 +23,7 @@
 
   if (themeToggle) {
     themeToggle.addEventListener("click", () => {
-      setTheme(root.classList.contains("dark") ? "light" : "dark");
+      setTheme(root.getAttribute("data-theme") === "dark" ? "light" : "dark");
     });
   }
 
