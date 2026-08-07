@@ -32,6 +32,11 @@ class PetsyncTestCase(unittest.TestCase):
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, 200)
 
+    def test_animations_js_served_at_documented_path(self):
+        resp = self.client.get("/static/js/petsync-animations.js")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"petsync-theme", resp.data)
+
 
 if __name__ == "__main__":
     unittest.main()
