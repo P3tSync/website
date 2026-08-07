@@ -119,3 +119,21 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
 .brand img, .foot-brand img { display: block; }
 
 .qty-remove { width: auto; border-radius: 8px; padding: 0 10px; font-size: 0.8rem; color: var(--danger); border-color: var(--danger); }
+
+/* Mobile nav */
+.nav-toggle-checkbox { display: none; }
+.nav-toggle-label { display: none; cursor: pointer; font-size: 1.4rem; line-height: 1; }
+@media (max-width: 640px) {
+  .nav-row { flex-wrap: wrap; }
+  .nav-toggle-label { display: block; margin-left: auto; order: 1; }
+  .nav-links {
+    display: none;
+    order: 5;
+    flex-basis: 100%;
+    flex-direction: column;
+    gap: 4px;
+    margin-left: 0;
+  }
+  .nav-toggle-checkbox:checked ~ .nav-links { display: flex; }
+  .pet-switcher, .theme-toggle, .nav-cart { order: 2; }
+}

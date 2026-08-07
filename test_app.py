@@ -167,6 +167,11 @@ class PetsyncTestCase(unittest.TestCase):
         resp = self.client.get("/cart")
         self.assertIn(b">Remove<", resp.data)
 
+    def test_mobile_nav_toggle_present(self):
+        resp = self.client.get("/")
+        self.assertIn(b'id="nav-toggle"', resp.data)
+        self.assertIn(b'class="nav-toggle-label"', resp.data)
+
 
 if __name__ == "__main__":
     unittest.main()
