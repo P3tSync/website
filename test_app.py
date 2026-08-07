@@ -115,7 +115,7 @@ class PetsyncTestCase(unittest.TestCase):
 
     def test_anime_js_cdn_pinned_to_v3(self):
         resp = self.client.get("/")
-        self.assertIn(b"animejs@3.2.2", resp.data)
+        self.assertIn(b"animejs@3.2.2/lib/anime.min.js", resp.data)
 
     def test_order_status_uses_single_anime_call_style(self):
         order_id = self._create_test_order()
