@@ -104,6 +104,12 @@ class PetsyncTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertIn(b"1 items", resp.data)
 
+    def test_vets_page_has_no_typo(self):
+        resp = self.client.get("/vets")
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotIn(b"Avvailable", resp.data)
+        self.assertIn(b"Available slots", resp.data)
+
 
 if __name__ == "__main__":
     unittest.main()
