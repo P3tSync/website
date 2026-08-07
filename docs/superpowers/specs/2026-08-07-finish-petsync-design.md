@@ -37,6 +37,16 @@ set of UX polish items. No new features/pages are in scope.
 
 5. **Typo.** "Avvailable slots" → "Available slots" in `templates/vets.html`.
 
+6. **Unsized brand-mark icons.** Neither `.brand-mark` (header) nor the
+   footer's bare `<svg><use href="#icon-paw"/></svg>` has a CSS width/height
+   rule, and `styles.css` has no generic `svg` size rule either. Browsers fall
+   back to the default replaced-element size (~300×150) for an un-set SVG,
+   stretching the 24×24 paw artwork into a large, distorted shape instead of a
+   small icon. Confirmed live: this is what's actually rendering, not
+   `logo.png` (which isn't wired into any template yet). Resolved as part of
+   the logo integration below — both spots get an explicitly-sized `<img>`
+   instead of an unsized `<svg>`.
+
 ## Scope: Dark mode fix
 
 `petsync-animations.js` toggles a `.dark` class on `<html>`; `styles.css`
@@ -75,10 +85,13 @@ is the project logo.
   filename='img/logo.png') }}">` in `base.html`'s `<head>`.
 - Replace the header brand mark in `base.html` (`<svg class="brand-mark">` +
   `<span class="brand-word">Petsync</span>`) with a single `<img>` tag pointing
-  at the same file, sized to match the current nav height (~28px tall). The
-  hand-drawn SVG `#icon-paw` symbol stays in the sprite sheet since it's reused
-  elsewhere (`home.html` hero, `foot-brand`); only the header nav's brand mark
-  changes. Apply the same swap to the footer brand mark for consistency.
+  at the same file, with **explicit `height="28"` (width auto, `object-fit:
+  contain`)** so it can't fall back to native-resolution rendering (source
+  file is 256×192px — without sizing it would reproduce the exact oversized/
+  distorted look already seen with the unsized SVG). The hand-drawn SVG
+  `#icon-paw` symbol stays in the sprite sheet since it's reused elsewhere
+  (`home.html` hero); only the header nav's brand mark changes. Apply the same
+  swap to the footer brand mark, with `height="32"`.
 
 ## Scope: Tests
 
@@ -144,4 +157,6 @@ alternative (superseded by the header brand-mark swap above).
   cart → checkout → order status, and vets → book → confirmation, and
   `/admin/login` → dashboard, and an invalid URL (404 page renders).
 - Toggle dark mode and confirm the palette actually changes.
+- Check the header and footer brand marks render as a small, correctly
+  proportioned logo (not the oversized/distorted paw shape seen pre-fix).
 - `python test_app.py` — all tests pass.
