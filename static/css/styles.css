@@ -121,8 +121,20 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
 .qty-remove { width: auto; border-radius: 8px; padding: 0 10px; font-size: 0.8rem; color: var(--danger); border-color: var(--danger); }
 
 /* Mobile nav */
-.nav-toggle-checkbox { display: none; }
+.nav-toggle-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
 .nav-toggle-label { display: none; cursor: pointer; font-size: 1.4rem; line-height: 1; }
+.nav-toggle-checkbox:focus-visible ~ .nav-toggle-label {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 @media (max-width: 640px) {
   .nav-row { flex-wrap: wrap; }
   .nav-toggle-label { display: block; margin-left: auto; order: 1; }
