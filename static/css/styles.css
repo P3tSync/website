@@ -111,6 +111,8 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
 .dial-cardinal { font-family: 'IBM Plex Mono', monospace; fill: var(--text-secondary); font-size: 12px; text-anchor: middle; dominant-baseline: middle; }
 .dial-label { fill: var(--text); font-weight: 600; font-size: 14px; }
 .dial-sublabel { fill: var(--text-secondary); font-size: 11px; }
+.tick { stroke: var(--border); stroke-width: 1.5; }
+.ticker { transform-box: view-box; transform-origin: 50% 50%; }
 
 /* Dark mode toggle */
 [data-theme="dark"] body { background: var(--bg); }

@@ -133,8 +133,8 @@ class PetsyncTestCase(unittest.TestCase):
         resp = self.client.get("/static/img/logo.png")
         self.assertEqual(resp.status_code, 200)
         home = self.client.get("/").data
-        self.assertIn(b'height="28"', home)
-        self.assertIn(b'height="32"', home)
+        self.assertIn(b'height="44"', home)
+        self.assertIn(b'height="48"', home)
 
     def test_booking_form_reselects_species_after_error(self):
         with petsync_app.app.app_context():
@@ -305,6 +305,12 @@ class PetsyncTestCase(unittest.TestCase):
         self.assertIn(
             f'name="pet_id" value="{pet["id"]}"'.encode(), resp.data
         )
+
+    def test_clock_ticker_rotates_around_its_own_center(self):
+        resp = self.client.get("/static/css/styles.css")
+        body = resp.data.decode("utf-8")
+        self.assertIn(".ticker { transform-box: view-box; transform-origin: 50% 50%; }", body)
+        self.assertIn(".tick { stroke:", body)
 
 
 if __name__ == "__main__":
