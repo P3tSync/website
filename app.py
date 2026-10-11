@@ -1,11 +1,13 @@
 import json
 import os
 import random
+import re
 import sqlite3
 from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
-from flask import Flask, g, render_template, request, session, redirect, url_for, flash, abort, jsonify 
+from flask import Flask, g, render_template, request, session, redirect, url_for, flash, abort, jsonify
+from werkzeug.security import check_password_hash, generate_password_hash 
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get("PETSYNC_DB_PATH", BASE_DIR / "petsync.db"))
@@ -15,6 +17,11 @@ app.secret_key = os.environ.get("PETSYNC_SECRET_KEY", "dev-petsync-secret-change
 
 DELIVERY_FEE_CENTS = 299
 ADMIN_PASSWORD = os.environ.get("PETSYNC_ADMIN_PASSWORD", "petsync-admin")
+ADMIN_EMAIL = os.environ.get("PETSYNC_ADMIN_EMAIL", "admin@petsync.co.uk")
+DEMO_EMAIL = os.environ.get("PETSYNC_DEMO_EMAIL", "demo@petsync.co.uk")
+DEMO_PASSWORD = os.environ.get("PETSYNC_DEMO_PASSWORD", "petsync-demo")
+
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 def get_db():
     if "db" not in g:
@@ -116,6 +123,21 @@ CREATE TABLE IF NOT EXISTS partner_leads (
     contact_name TEXT,
     email TEXT,
     message TEXT
+);
+
+CREATE TABLE IF NOT EXISTS waitlist_emails (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'demo',
+    name TEXT
 );
 """
 
@@ -249,7 +271,7 @@ def seed_db():
 
 @app.template_filter("money")
 def money(cents):
-    return f"${cents / 100:,.2f}"
+    return f"£{cents / 100:,.2f}"
 
 @app.template_filter("human_slot")
 def human_slot(iso_str):
@@ -279,6 +301,22 @@ def ensure_demo_pet():
             (datetime.now().isoformat(timespec="seconds"), "Miso", "cat", "adult",
              "Chicken sensitivity", "Prefers limited-ingredient fish recipes."))
         db.commit()
+    db.close()
+
+def ensure_accounts():
+    db = sqlite3.connect(DB_PATH)
+    now = datetime.now().isoformat(timespec="seconds")
+    db.execute(
+        "INSERT OR IGNORE INTO users (created_at, email, password_hash, role, name) "
+        "VALUES (?,?,?,?,?)",
+        (now, ADMIN_EMAIL, generate_password_hash(ADMIN_PASSWORD),
+         "admin", "Petsync Admin"))
+    db.execute(
+        "INSERT OR IGNORE INTO users (created_at, email, password_hash, role, name) "
+        "VALUES (?,?,?,?,?)",
+        (now, DEMO_EMAIL, generate_password_hash(DEMO_PASSWORD),
+         "demo", "Demo Tester"))
+    db.commit()
     db.close()
 
 def get_pets():
@@ -324,6 +362,36 @@ def login_required(view):
         return view(*args, **kwargs)
     return wrapped
 
+def has_full_access():
+    return bool(session.get("full_access"))
+
+# Tabs that need a demo/admin account. Home, partners, login and the
+# waitlist API stay public.
+LOGIN_REQUIRED_ENDPOINTS = {
+    "order_browse", "kitchen_menu", "cart_add", "cart_view", "cart_update",
+    "cart_clear", "order_status_page", "api_order_status", "vets_browse",
+    "book_slot", "booking_confirmation", "pets_page", "select_pet",
+    "owner_history",
+}
+
+@app.before_request
+def require_preview_login():
+    if request.endpoint in LOGIN_REQUIRED_ENDPOINTS and not has_full_access():
+        flash("Log in with your demo or admin account to continue.", "warning")
+        return redirect(url_for("access", next=request.path))
+    return None
+
+def add_waitlist_email(email):
+    db = get_db()
+    try:
+        db.execute(
+            "INSERT INTO waitlist_emails (created_at, email) VALUES (?,?)",
+            (datetime.now().isoformat(timespec="seconds"), email))
+        db.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return True  # already on the list counts as joined
+
 @app.context_processor
 def inject_cart_count():
     cart = session.get("cart")
@@ -337,9 +405,60 @@ def inject_cart_count():
         pass
     return dict(cart_count=count, selected_pet=selected_pet, pets=pets)
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def home():
-    return render_template("home.html")
+    joined = request.args.get("joined") == "1"
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        if EMAIL_RE.match(email):
+            add_waitlist_email(email)
+            return redirect(url_for("home", joined=1))
+        flash("Enter a valid email to join the waitlist.", "warning")
+    try:
+        top_kitchens = get_db().execute("""
+            SELECT k.*, MIN(m.price_cents) AS min_price_cents
+            FROM kitchens k
+            JOIN menu_items m ON m.kitchen_id = k.id
+            GROUP BY k.id
+            ORDER BY k.rating DESC
+            LIMIT 3
+        """).fetchall()
+    except sqlite3.Error:
+        top_kitchens = []
+    return render_template("home.html",
+                           show_pill=not has_full_access(),
+                           joined=joined,
+                           top_kitchens=top_kitchens)
+
+@app.route("/access", methods=["GET", "POST"])
+def access():
+    next_url = request.args.get("next") or request.form.get("next") or url_for("home")
+    if has_full_access():
+        return redirect(next_url)
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password", "")
+        user = get_db().execute(
+            "SELECT * FROM users WHERE email=?", (email,)).fetchone()
+        if user and check_password_hash(user["password_hash"], password):
+            session["full_access"] = True
+            session["access_kind"] = user["role"]
+            session["user_email"] = user["email"]
+            if user["role"] == "admin":
+                session["admin_authenticated"] = True
+            flash(f"Welcome{( ', ' + user['name']) if user['name'] else ''} — Petsync unlocked.", "success")
+            return redirect(next_url)
+        flash("That email or password did not work.", "warning")
+    return render_template("access.html", next_url=next_url)
+
+@app.route("/api/waitlist", methods=["POST"])
+def api_waitlist():
+    data = request.get_json(silent=True) or {}
+    email = str(data.get("email", "")).strip().lower()
+    if not EMAIL_RE.match(email):
+        return jsonify(ok=False, error="Enter a valid email."), 400
+    add_waitlist_email(email)
+    return jsonify(ok=True)
 
 @app.route("/pets", methods=["GET", "POST"])
 def pets_page():
@@ -415,6 +534,9 @@ def owner_history():
 def order_browse():
     db = get_db()
     active_pet = get_selected_pet()
+    location = (request.args.get("location") or session.get("location") or "").strip()
+    if location:
+        session["location"] = location
     filters = dict(
         species=request.args.get("species", active_pet["species"] if active_pet else "any"),
         life_stage=request.args.get("life_stage", active_pet["life_stage"] if active_pet else "any"),
@@ -456,7 +578,7 @@ def order_browse():
         if include:
             filtered.append(kitchen)
     return render_template("order_browse.html", kitchens=filtered, filters=filters,
-                           active_pet=active_pet)
+                           active_pet=active_pet, location=location)
 
 @app.route("/order/<int:kitchen_id>")
 def kitchen_menu(kitchen_id):
@@ -638,6 +760,9 @@ def api_order_status(order_id):
 def vets_browse():
     db = get_db()
     active_pet = get_selected_pet()
+    location = (request.args.get("location") or session.get("location") or "").strip()
+    if location:
+        session["location"] = location
     species = request.args.get("species", active_pet["species"] if active_pet else "any")
     urgency = request.args.get("urgency", "any")
 
@@ -662,7 +787,8 @@ def vets_browse():
                              distance=v["distance_label"]))
 
     return render_template("vets.html", vet_cards=vet_cards, markers_json=json.dumps(markers),
-                            species=species, urgency=urgency, active_pet=active_pet)
+                           species=species, urgency=urgency, active_pet=active_pet,
+                           location=location)
 
 @app.route("/vets/<int:vet_id>/book/<int:slot_id>", methods=["GET", "POST"])
 def book_slot(vet_id, slot_id):
@@ -772,6 +898,8 @@ def admin_login():
         password = request.form.get("password", "")
         if password == ADMIN_PASSWORD:
             session["admin_authenticated"] = True
+            session["full_access"] = True
+            session["access_kind"] = "admin"
             flash("Dashboard unlocked.", "success")
             return redirect(request.args.get("next") or url_for("dashboard"))
         flash("That password did not work.", "warning")
@@ -780,7 +908,10 @@ def admin_login():
 @app.route("/admin/logout", methods=["POST"])
 def admin_logout():
     session.pop("admin_authenticated", None)
-    flash("Signed out of the dashboard.", "success")
+    session.pop("full_access", None)
+    session.pop("access_kind", None)
+    session.pop("user_email", None)
+    flash("Signed out.", "success")
     return redirect(url_for("home"))
 
 @app.errorhandler(404)
@@ -796,6 +927,7 @@ def server_error(_error):
 init_db()
 seed_db()
 ensure_demo_pet()
+ensure_accounts()
 
 if __name__ == "__main__":
     app.run(debug=True)

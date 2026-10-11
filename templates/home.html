@@ -1,67 +1,224 @@
 {% extends "base.html" %}
-{% block title %}Petsync — pet food delivery & vet finder{% endblock %}
+{% block title %}Petsync — pet groceries, fresh food & vets near you{% endblock %}
 {% block content %}
 
-<section class="hero wrap">
-  <div class="hero-copy">
-    <h1>Feeding time and vet time,<br>on the same clock.</h1>
-    <p class="lede">Order fresh meals from kitchens near you and book vet care with your pet's diet history already attached.</p>
-    <div class="hero-ctas">
-      <a href="{{ url_for('order_browse') }}" class="btn btn-primary">
-        <svg style="width:18px;height:18px"><use href="#icon-bowl"/></svg> Order pet food
+{# Adapted CozyPaws hero layout → Petsync brand, UK copy, location search. No Anime.js, no clock. #}
+<section class="hero-cozy" aria-label="Petsync hero">
+  <div class="hero-cozy-text">
+    <span class="eyebrow eyebrow-hero animate-fade-in delay-100">UK-first pet super app · London now</span>
+    <h1 class="cozy-hero__heading" aria-label="Everything your pets need">
+      <span class="cozy-hero__line"><span class="cozy-word" style="--wd:200ms" aria-hidden="true">{% for ch in "Everything" %}<span class="cozy-letter">{{ ch }}</span>{% endfor %}</span></span>
+      <span class="cozy-hero__line"><span class="cozy-word" style="--wd:320ms" aria-hidden="true">{% for ch in "Your Pets" %}<span class="cozy-letter">{% if ch == " " %}&nbsp;{% else %}{{ ch }}{% endif %}</span>{% endfor %}</span> <span class="cozy-word accent" style="--wd:440ms" aria-hidden="true">{% for ch in "Need" %}<span class="cozy-letter">{{ ch }}</span>{% endfor %}</span></span>
+    </h1>
+    <p class="lede hero-cozy-sub animate-fade-up delay-500">Pet groceries, fresh food delivery and local vets — tell us where you are and we’ll show what’s near you.</p>
+    <form action="{{ url_for('order_browse') }}" method="get" class="hero-search animate-fade-up delay-600" role="search">
+      <svg class="hero-search-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-pin"/></svg>
+      <label class="sr-only" for="hero_location">Postcode or town</label>
+      <input id="hero_location" name="location" type="text" placeholder="Enter postcode or town — e.g. E2 8AA" autocomplete="postal-code" required>
+      <button type="submit" class="btn btn-primary">See near me</button>
+    </form>
+    <div class="hero-ctas animate-fade-up delay-700">
+      <a href="{{ url_for('order_browse') }}" class="btn btn-primary">Order pet food</a>
+      <a href="{{ url_for('vets_browse') }}" class="btn btn-secondary">Find a vet</a>
+    </div>
+    {% if show_pill %}
+    <div class="wl-pill-row animate-fade-up delay-800">
+      {% if joined %}
+      <span class="wl-pill-done" role="status">✓ You&rsquo;re on the list — watch your inbox.</span>
+      {% else %}
+      <button type="button" id="wl-pill" class="btn btn-ghost btn-pill">Get early access</button>
+      <form id="wl-pill-form" class="wl-pill-form" action="{{ url_for('home') }}" method="post" hidden>
+        <label class="sr-only" for="wl-pill-email">Email</label>
+        <input id="wl-pill-email" name="email" type="email" required placeholder="you@example.com" autocomplete="email">
+        <button type="submit" class="btn btn-primary btn-pill">Join</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  {# Left product card #}
+  <aside class="cozy-side cozy-left animate-slide-in-left delay-600" aria-label="Featured meal">
+    <div class="cozy-card-img">
+      <img src="https://polo-pecan-73837341.figma.site/_assets/v11/3e5158dad63d392ade022e81890edc9f54d750bc.png" alt="Fresh Petsync meal bowl" loading="eager">
+      <a href="{{ url_for('order_browse') }}" class="cozy-arrow" aria-label="Order this meal">
+        <svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
-      <a href="{{ url_for('vets_browse') }}" class="btn btn-secondary">
-        <svg style="width:18px;height:18px"><use href="#icon-medic"/></svg> Find a vet
+    </div>
+    <p class="cozy-card-name">Slow-Cooked Turkey Bowl</p>
+    <p class="cozy-card-price">£6.50</p>
+  </aside>
+
+  {# Right video/how-it-works card #}
+  <aside class="cozy-side cozy-right animate-slide-in-right delay-700" aria-label="How Petsync works">
+    <div class="cozy-card-img cozy-video">
+      <img src="https://polo-pecan-73837341.figma.site/_assets/v11/76be6ec3a93a703b15e9cc01e764a4e3f9d7d2c0.png" alt="How Petsync works video" loading="eager">
+      <a href="{{ url_for('vets_browse') }}" class="cozy-play" aria-label="See how Petsync works">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
       </a>
-      <a href="{{ url_for('pets_page') }}" class="btn btn-ghost">Manage pets</a>
+    </div>
+    <p class="cozy-card-caption">Watch how food &amp; vet visits stay in sync</p>
+  </aside>
+
+  {# Bottom 3-panel images #}
+  <div class="cozy-bottom" aria-hidden="false">
+    <div class="cozy-panel animate-photo-reveal" style="animation-delay:600ms" data-says="woof!">
+      <img src="https://polo-pecan-73837341.figma.site/_assets/v11/8d44b25186ef45a5789c74668fb781cea4e1ff49.png" alt="Happy dog in London" loading="lazy">
+      <div class="cozy-overlay cozy-overlay-left animate-scale-in delay-1000">
+        <span class="cozy-stat">12K+</span>
+        <span class="cozy-avatars">
+          <img src="https://polo-pecan-73837341.figma.site/_assets/v11/e62173d41f91350a59628e8a9a55ae078a886fb9.png?w=128" alt="Petsync pet parent">
+          <span class="cozy-plus" aria-hidden="true">+</span>
+        </span>
+        <span class="cozy-overlay-sub">happy pets in London</span>
+      </div>
+    </div>
+    <div class="cozy-panel cozy-panel-center animate-photo-reveal" style="animation-delay:700ms" data-says="treats?">
+      <img src="https://polo-pecan-73837341.figma.site/_assets/v11/96745c4e72ad5c5208e53a885df797fd82cd854a.png?h=1024" alt="Fresh pet food and cat" loading="lazy">
+      <div class="cozy-overlay cozy-overlay-center animate-scale-in delay-1100">
+        <p class="cozy-center-title">Fresh food &amp; trusted vets near you</p>
+        <a href="{{ url_for('order_browse') }}" class="btn btn-primary btn-pill">Explore <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+    <div class="cozy-panel animate-photo-reveal" style="animation-delay:800ms" data-says="meow?">
+      <img src="https://polo-pecan-73837341.figma.site/_assets/v11/81bd2e7a66b58f3d8f3ad78fd1ebf01af8dfdee1.png" alt="Cat portrait" loading="lazy">
+      <div class="cozy-overlay cozy-overlay-right animate-scale-in delay-1200">
+        <span class="cozy-rating"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.3 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z" fill="currentColor"/></svg> 4.8</span>
+        <span class="cozy-overlay-sub">from London pet parents</span>
+      </div>
+    </div>
+  </div>
+
+  {# Mobile-only summary row (shown below md via CSS) #}
+  <div class="cozy-mobile-cards">
+    <div class="cozy-card-img">
+      <img src="https://polo-pecan-73837341.figma.site/_assets/v11/3e5158dad63d392ade022e81890edc9f54d750bc.png" alt="Fresh Petsync meal bowl">
+    </div>
+    <div class="cozy-card-img cozy-video">
+      <img src="https://polo-pecan-73837341.figma.site/_assets/v11/76be6ec3a93a703b15e9cc01e764a4e3f9d7d2c0.png" alt="How Petsync works">
+    </div>
+  </div>
+  <div class="cozy-mobile-stats">
+    <span><strong>12K+</strong> happy pets</span>
+    <span class="cozy-divider" aria-hidden="true"></span>
+    <span><strong>★ 4.8</strong> London rating</span>
+  </div>
+</section>
+
+<section class="wrap" id="whats-inside" aria-label="What Petsync does">
+  <div class="glow-band">
+    <span class="eyebrow eyebrow-dark">What Petsync does</span>
+    <h2>Groceries, fresh food and vets — one app.</h2>
+    <p class="lede">No taxi, no fluff. Just the three things UK pet parents use every week.</p>
+    <div class="glow-grid">
+      <div class="glow-card" style="animation-delay:0.1s">
+        <div class="glow-bg" style="background:linear-gradient(137deg, #FF3D77 0%, #FFB1CE 45%, #FF9D3C 100%)"></div>
+        <div class="glow-face" style="background:linear-gradient(#1A1A1C, #1A1A1C) padding-box, linear-gradient(137deg, #FF3D77 0%, #FFB1CE 45%, #FF9D3C 100%) border-box;">
+          <div class="glow-inner">
+            <div class="glow-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><ellipse cx="12" cy="7.3" rx="8.6" ry="2.1"/><path d="M3.4 8.1C3.4 8.1 4.4 18.4 12 18.4C19.6 18.4 20.6 8.1 20.6 8.1"/></svg>
+            </div>
+            <div>
+              <h3 class="glow-title">Pet Groceries</h3>
+              <p class="glow-desc">Everyday essentials from local kitchens and pantries, delivered fast. <a href="{{ url_for('order_browse') }}" style="color:#fff;">Shop groceries →</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="glow-card" style="animation-delay:0.2s">
+        <div class="glow-bg" style="background:linear-gradient(137deg, #FFFFFF 0%, #7DD3FC 45%, #06B6D4 100%)"></div>
+        <div class="glow-face" style="background:linear-gradient(#1A1A1C, #1A1A1C) padding-box, linear-gradient(137deg, #FFFFFF 0%, #7DD3FC 45%, #06B6D4 100%) border-box;">
+          <div class="glow-inner">
+            <div class="glow-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 5c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z"/><path d="M5 9c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z"/><path d="M15 7c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z"/><path d="M15 13c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z"/><path d="M7 14.5c.7 1.7 2.5 2.8 4.7 2.8s4-1.1 4.7-2.8c.7-1.7.1-3.2-1.3-4.3-1.6-1.2-3.8-1.2-5.4 0-1.4 1.1-2 2.6-1.3 4.3z"/></svg>
+            </div>
+            <div>
+              <h3 class="glow-title">Fresh Food Delivery</h3>
+              <p class="glow-desc">Vet-formulated bowls for puppies, adults and seniors — filtered by diet. <a href="{{ url_for('order_browse') }}" style="color:#fff;">Order fresh →</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="glow-card" style="animation-delay:0.3s">
+        <div class="glow-bg" style="background:linear-gradient(137deg, #4361EE 0%, #E0AEFF 45%, #F72585 100%)"></div>
+        <div class="glow-face" style="background:linear-gradient(#1A1A1C, #1A1A1C) padding-box, linear-gradient(137deg, #4361EE 0%, #E0AEFF 45%, #F72585 100%) border-box;">
+          <div class="glow-inner">
+            <div class="glow-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9.4"/><path d="M12 7.6V16.4"/><path d="M7.6 12H16.4"/></svg>
+            </div>
+            <div>
+              <h3 class="glow-title">Local Vet Matching</h3>
+              <p class="glow-desc">Routine, urgent or emergency slots with your pet&rsquo;s history attached. <a href="{{ url_for('vets_browse') }}" style="color:#fff;">Find a vet →</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<section class="syncs wrap">
-  <span class="eyebrow">How it syncs</span>
-  <h2>Every meal and every visit, on one ring.</h2>
-  <p class="lede">Each order and appointment connects to a pet profile, so meals, allergies, diet notes, and vet visits stay in one practical timeline.</p>
-  <div class="dial-wrap">
-    <svg class="clockwork-dial" viewBox="0 0 440 440" aria-label="Petsync clockwork care timeline">
-      <circle cx="220" cy="220" r="140" fill="none" stroke="rgba(21,33,29,0.14)" stroke-width="1.5"/>
-      <g class="clockwork-ticks">
-        {% for i in range(48) %}
-        <line class="tick" x1="220" y1="76" x2="220" y2="84" transform="rotate({{ i * 7.5 }} 220 220)"/>
-        {% endfor %}
-      </g>
-      <text x="220" y="58" text-anchor="middle" class="dial-cardinal">00:00</text>
-      <text x="382" y="224" text-anchor="start" class="dial-cardinal">06:00</text>
-      <text x="220" y="392" text-anchor="middle" class="dial-cardinal">12:00</text>
-      <g class="ticker">
-        <line x1="220" y1="220" x2="220" y2="106" stroke="#173C3C" stroke-width="3.2" stroke-linecap="round"/>
-        <circle cx="220" cy="106" r="6" fill="#173C3C"/>
-      </g>
-      <circle cx="220" cy="220" r="6" fill="#15211D"/>
-      <circle cx="355.2" cy="256.2" r="8" fill="#E8A33D"/>
-      <line x1="355.2" y1="256.2" x2="392" y2="270" stroke="rgba(21,33,29,0.3)" stroke-width="1.3"/>
-      <text x="396" y="274" class="dial-label">07:00</text>
-      <text x="396" y="289" class="dial-sublabel">Breakfast delivery</text>
-      <circle cx="150" cy="341.2" r="8" fill="#E2604A"/>
-      <line x1="150" y1="341.2" x2="128" y2="378" stroke="rgba(21,33,29,0.3)" stroke-width="1.3"/>
-      <text x="124" y="396" text-anchor="end" class="dial-label">14:00</text>
-      <text x="124" y="411" text-anchor="end" class="dial-sublabel">Vet check-up</text>
-      <circle cx="80" cy="220" r="8" fill="#E8A33D"/>
-      <line x1="80" y1="220" x2="42" y2="220" stroke="rgba(21,33,29,0.3)" stroke-width="1.3"/>
-      <text x="38" y="216" text-anchor="end" class="dial-label">18:00</text>
-      <text x="38" y="231" text-anchor="end" class="dial-sublabel">Dinner delivery</text>
-    </svg>
-  </div>
-</section>
-
 <section class="partner-teaser wrap">
-  <div class="partner-teaser-box">
+  <div class="partner-teaser-box reveal">
     <div>
       <h3>Running a kitchen or a clinic?</h3>
-      <p class="lede" style="margin:0;">Sync works both ways — register your kitchen or clinic to get listed.</p>
+      <p class="lede" style="margin:0;">Join Petsync UK — get listed where London pet parents already order.</p>
     </div>
     <a href="{{ url_for('partners') }}" class="btn btn-ghost">For partners →</a>
   </div>
 </section>
 
+{% if top_kitchens %}
+<section class="wrap" aria-label="Fresh from local kitchens">
+  <span class="eyebrow">Dog-tested, London-made</span>
+  <h2 style="margin:6px 0 8px;color:var(--plum);font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:-0.02em;">Fresh from local kitchens</h2>
+  <p class="lede">Top-rated near you this week — log in to order.</p>
+  <div class="kitchen-grid">
+    {% for k in top_kitchens %}
+    <a href="{{ url_for('kitchen_menu', kitchen_id=k['id']) }}" class="kitchen-tile reveal">
+      <div class="kitchen-tile-banner" style="background:{{ k['accent'] }};"></div>
+      <div class="kitchen-tile-body">
+        <h3>{{ k['name'] }}</h3>
+        <p class="tagline">{{ k['tagline'] }} · from {{ k['min_price_cents'] | money }}</p>
+        <div class="kitchen-tile-meta">
+          <span>★ {{ k['rating'] }}</span>
+          <span>{{ k['eta_min'] }} min</span>
+          <span>{{ k['distance_label'] }}</span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if show_pill and not joined %}
+<script>
+(function () {
+  var btn = document.getElementById("wl-pill");
+  var form = document.getElementById("wl-pill-form");
+  if (!btn || !form) return;
+  btn.addEventListener("click", function () {
+    btn.hidden = true;
+    form.hidden = false;
+    form.querySelector("input").focus();
+  });
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var email = form.querySelector("input").value.trim();
+    if (!email) return;
+    fetch("{{ url_for('api_waitlist') }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email })
+    }).then(function (res) {
+      if (!res.ok) throw new Error("bad");
+      form.outerHTML = "<span class=\"wl-pill-done\" role=\"status\">✓ You are on the list — watch your inbox.</span>";
+    }).catch(function () { form.submit(); });
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

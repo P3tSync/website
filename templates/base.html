@@ -6,8 +6,9 @@
 <title>{% block title %}Petsync{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/glow.css') }}">
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
 </head>
 <body>
@@ -60,19 +61,37 @@
       <a href="{{ url_for('vets_browse') }}" {% if request.path.startswith('/vets') %}class="active"{% endif %}>Find a vet</a>
       <a href="{{ url_for('pets_page') }}" {% if request.path.startswith('/pets') or request.path.startswith('/history') %}class="active"{% endif %}>My pets</a>
       <a href="{{ url_for('partners') }}" {% if request.path.startswith('/partners') %}class="active"{% endif %}>For partners</a>
+      {% if not session.get('full_access') %}
+      <a href="{{ url_for('access') }}" {% if request.path.startswith('/access') %}class="active"{% endif %}>Log in</a>
+      {% endif %}
     </nav>
-    {% if selected_pet %}
-    <form action="{{ url_for('select_pet') }}" method="post" class="pet-switcher">
-      <label for="nav_pet">Pet</label>
-      <select id="nav_pet" name="pet_id" onchange="this.form.submit()">
-        {% for pet in pets %}
-        <option value="{{ pet['id'] }}" {% if pet['id'] == selected_pet['id'] %}selected{% endif %}>{{ pet['name'] }}</option>
-        {% endfor %}
-      </select>
-    </form>
+    {% if session.get('location') %}
+    <span class="location-pill">Near {{ session.get('location') }}</span>
     {% endif %}
-    <button type="button" class="theme-toggle" aria-label="Toggle dark mode">🌙</button>
-    <a href="{{ url_for('cart_view') }}" class="nav-cart">
+    {% if session.get('full_access') and selected_pet %}
+    <details class="acct">
+      <summary class="nav-avatar" aria-label="Account: {{ selected_pet['name'] }}">{{ selected_pet['name'][0] }}</summary>
+      <div class="acct-menu">
+        <p class="acct-hi">Hey {{ selected_pet['name'] }}</p>
+        <a href="{{ url_for('pets_page') }}">My pets</a>
+        <a href="{{ url_for('owner_history') }}">Order history</a>
+        <form action="{{ url_for('admin_logout') }}" method="post">
+          <button type="submit" class="link-btn">Log out</button>
+        </form>
+      </div>
+    </details>
+    {% else %}
+    <details class="acct">
+      <summary class="nav-avatar acct-guest" aria-label="Account: browsing as guest">?</summary>
+      <div class="acct-menu">
+        <p class="acct-hi">Hey there</p>
+        <p class="acct-sub">You&rsquo;re browsing as a guest</p>
+        <a href="{{ url_for('access') }}">Log in or join</a>
+        <a href="{{ url_for('home') }}">Get early access</a>
+      </div>
+    </details>
+    {% endif %}
+    <a href="{{ url_for('cart_view') }}" class="nav-cart" aria-label="Cart">
       <svg viewBox="0 0 24 24"><use href="#icon-cart"/></svg>
       {% if cart_count %}<span class="cart-badge">{{ cart_count }}</span>{% endif %}
     </a>
@@ -98,11 +117,13 @@
     <a href="{{ url_for('home') }}" class="foot-brand">
       <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Petsync" height="48" style="width:auto;object-fit:contain;">
     </a>
-    <p class="foot-disclaimer">Seeded availability for testing. Verify kitchens, clinics, and care advice before real use.</p>
+    <div class="foot-contact">
+      <p class="foot-office">12 Bark Lane, London N1 7GU · <a href="mailto:hello@petsync.co.uk">hello@petsync.co.uk</a></p>
+      <p class="foot-disclaimer">Seeded availability for testing. Verify kitchens, clinics, and care advice before real use.</p>
+    </div>
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
 <script src="{{ url_for('static', filename='js/petsync-animations.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>

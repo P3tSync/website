@@ -51,16 +51,7 @@
       const res = await fetch(`/api/orders/${orderId}/status`);
       if (!res.ok) return;
       const data = await res.json();
-      if (window.anime) {
-        window.anime({
-          targets: fillEl,
-          width: data.pct + '%',
-          duration: 650,
-          easing: 'easeOutCubic'
-        });
-      } else {
-        fillEl.style.width = data.pct + '%';
-      }
+      fillEl.style.width = data.pct + '%';
       headingEl.textContent = data.status;
       stageEls.forEach(el => {
         const idx = parseInt(el.dataset.stageIndex, 10);

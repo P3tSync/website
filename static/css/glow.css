@@ -1,0 +1,84 @@
+/* Petsync glow feature cards — shared by waitlist + home. Vanilla replica of the motion spec. */
+.glow-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+  width: 100%;
+  max-width: 936px;
+  margin: 0 auto;
+}
+@media (min-width: 768px) {
+  .glow-grid { grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+}
+
+.glow-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
+  animation: glow-in 0.8s ease-out both;
+}
+@media (min-width: 768px) { .glow-card { max-width: 300px; } }
+@keyframes glow-in { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+.glow-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 260px;
+  opacity: 0.6;
+  border-radius: 40px;
+  pointer-events: none;
+  filter: blur(45px);
+}
+@media (min-width: 768px) { .glow-bg { height: 300px; } }
+
+.glow-face {
+  position: relative;
+  z-index: 10;
+  align-self: stretch;
+  min-height: 260px;
+  border-radius: 40px;
+  border: 8px solid transparent;
+  overflow: hidden;
+}
+@media (min-width: 768px) { .glow-face { min-height: 300px; } }
+
+.glow-inner {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+  text-align: left;
+}
+.glow-icon { color: rgba(255, 255, 255, 0.9); }
+.glow-icon svg { width: 32px; height: 32px; display: block; }
+.glow-title { color: #fff; font-weight: 500; font-size: 1.25rem; margin: 0 0 0.75rem; letter-spacing: -0.02em; }
+.glow-desc { color: #9ca3af; font-size: 14px; line-height: 1.6; font-weight: 400; margin: 0; }
+.glow-desc::selection { background: rgba(255, 255, 255, 0.2); }
+
+/* Dark band wrapping the grid on the light home page */
+.glow-band {
+  background: #0A0A0B;
+  border-radius: 28px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+@media (min-width: 768px) { .glow-band { padding: 4rem 3rem; } }
+.glow-band h2 { color: #fff; margin: 0.75rem 0 0.5rem; font-size: clamp(1.6rem, 3vw, 2.4rem); letter-spacing: -0.02em; }
+.glow-band .lede { color: rgba(255, 255, 255, 0.6); }
+.eyebrow-dark { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); color: #B0A0C0; }
+.glow-band .glow-grid { margin-top: 2.5rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-card { animation: none; }
+}

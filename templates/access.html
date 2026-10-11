@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — Petsync</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/aurora.css') }}">
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+</head>
+<body>
+
+<main class="auth">
+  {# Left column — hero panel #}
+  <section class="auth-left" aria-label="Welcome to Petsync">
+    <video class="auth-video" id="auth-video" autoplay muted loop playsinline aria-hidden="true"></video>
+    <div class="auth-veil" aria-hidden="true"></div>
+    <div class="auth-hero">
+      <div class="auth-brand">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Petsync" height="34">
+        <span>Petsync</span>
+      </div>
+      <div class="auth-heading">
+        <h1>Welcome back</h1>
+        <p>Sign in to order fresh food, manage your pets and book vet care.</p>
+      </div>
+      <div class="auth-steps">
+        <div class="auth-step auth-step-active">
+          <span class="auth-num">1</span>
+          <span>Sign in to your account</span>
+        </div>
+        <div class="auth-step">
+          <span class="auth-num">2</span>
+          <span>Pick your pet profile</span>
+        </div>
+        <div class="auth-step">
+          <span class="auth-num">3</span>
+          <span>Order food &amp; book vets</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# Right column — form #}
+  <section class="auth-right" aria-label="Log in form">
+    <div class="auth-form-wrap">
+      <div class="auth-head">
+        <h2>Log in</h2>
+        <p>Use your demo or admin account to continue.</p>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="auth-flash">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" class="auth-form">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <div class="auth-field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="auth-field">
+          <label for="password">Password</label>
+          <div class="auth-pass">
+            <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
+            <button type="button" id="auth-eye" class="auth-eye" aria-label="Show password">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <p class="auth-hint">Demo and admin accounts both work here.</p>
+        </div>
+        <button type="submit" class="auth-submit">Log in</button>
+      </form>
+
+      <p class="auth-foot">
+        No account? <a href="{{ url_for('home') }}">Join the waitlist</a>
+        <span aria-hidden="true"> · </span>
+        <a href="{{ url_for('home') }}">Back to home</a>
+      </p>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+<script>
+(function () {
+  var video = document.getElementById("auth-video");
+  var src = "https://stream.mux.com/kimF2ha9zLrX64H00UgLGPflCzNtl1T0215MlAmeOztv8.m3u8";
+  if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    video.src = src;
+  } else if (window.Hls && window.Hls.isSupported()) {
+    var hls = new window.Hls();
+    hls.loadSource(src);
+    hls.attachMedia(video);
+  }
+  var play = video.play && video.play();
+  if (play && play.catch) play.catch(function () {});
+
+  var eye = document.getElementById("auth-eye");
+  var pw = document.getElementById("password");
+  eye.addEventListener("click", function () {
+    var show = pw.type === "password";
+    pw.type = show ? "text" : "password";
+    eye.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    eye.classList.toggle("auth-eye-on", show);
+  });
+})();
+</script>
+</body>
+</html>

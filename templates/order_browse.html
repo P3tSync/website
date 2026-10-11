@@ -4,7 +4,7 @@
 
 <section class="wrap page-head">
   <span class="eyebrow">Order</span>
-  <h1>Kitchens near you</h1>
+  <h1>Kitchens{% if location %} near {{ location }}{% else %} near you{% endif %}</h1>
   <p class="lede">Small local kitchens cooking pet meals. Filters start with {% if active_pet %}{{ active_pet['name'] }}'s profile{% else %}your pet profile{% endif %} and can be adjusted anytime.</p>
 </section>
 
@@ -43,9 +43,9 @@
       <label for="max_price">Max item price</label>
       <select id="max_price" name="max_price" onchange="this.form.submit()">
         <option value="any" {% if filters.max_price=='any' %}selected{% endif %}>Any</option>
-        <option value="600" {% if filters.max_price=='600' %}selected{% endif %}>$6.00</option>
-        <option value="700" {% if filters.max_price=='700' %}selected{% endif %}>$7.00</option>
-        <option value="800" {% if filters.max_price=='800' %}selected{% endif %}>$8.00</option>
+        <option value="600" {% if filters.max_price=='600' %}selected{% endif %}>£6.00</option>
+        <option value="700" {% if filters.max_price=='700' %}selected{% endif %}>£7.00</option>
+        <option value="800" {% if filters.max_price=='800' %}selected{% endif %}>£8.00</option>
       </select>
     </div>
     <div class="field-row">
